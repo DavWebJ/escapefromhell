@@ -45,7 +45,7 @@ namespace BlackPearl
 
         public int CheckRemainingAmmoGunInInventory()
         {
-            return Inventory.instance.AmountItemInInventory("ammo_gun");
+            return Inventory.instance.AmountItemInInventory(1);
         }
 
 

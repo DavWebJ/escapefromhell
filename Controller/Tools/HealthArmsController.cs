@@ -1,65 +1,33 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using BlackPearl;
-[RequireComponent(typeof(AudioSource))]
+
+
 public class HealthArmsController : MonoBehaviour
 {
-    [Header("References")]
 
-    private Item item = null;
-
-    [SerializeField] private AudioSource audios = null;
     private Animator animator = null;
 
-    public bool isInitialized = false;
-   public void Initialized()
+
+    private void Awake()
     {
-        audios = GetComponent<AudioSource>();
+
         animator = GetComponent<Animator>();
-        audios.playOnAwake = false;
-        audios.loop = false;
-        audios.volume = 0.5f;
-     
-       
-        // Heal();
-        StartCoroutine(PlayHeal());
-        isInitialized = true;
-    }
-
-
-
-    public void SetToolsItem(Item item)
-    {
-        this.item = item;
-        
 
     }
+
+
 
     public void Heal()
     {
-        
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if(!audios.isPlaying)
-        {
-            
-        }
-        //player.GetComponent<VitalState>().AddHealthFull(100);
+        AudioM.instance.PlayOneShotClip(AudioM.instance.FxAudioSource, AudioM.instance.seringue);
 
     }
-    public IEnumerator PlayHeal()
+
+    public void Hide()
     {
-    
-        yield return new WaitForSeconds(3.2f);
-
-        HotBar.instance.Selection();
-        yield break;
-
+        Destroy(gameObject);
     }
-
    
-    void Update()
-    {
-        
-    }
+
 }

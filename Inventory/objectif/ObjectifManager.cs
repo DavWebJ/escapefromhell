@@ -75,7 +75,7 @@ public class ObjectifManager : MonoBehaviour
                 Destroy(item.gameObject,2);
             }
         }
-
+        ScreenEventsManager.instance.SetVisualMessage("Vous avez rempli un objectif !", ScreenEventsManager.instance.prf_objectif_message, ScreenEventsManager.instance.gridObjectifMessage);
         objectifItems.Remove(obj);
         UpdateObjectifPanel();
         yield break;

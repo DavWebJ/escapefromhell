@@ -31,16 +31,22 @@ public class VitalState : MonoBehaviour {
         public float hungerMax = 100;
         public float hunger;
         public float hungerDecrease;
+        public bool useHungerStats = false;
         [Header("Thirsty")]
         public float thirstMax = 100;
         public float thirst;
         public float thirstDecrease;
+        public bool useThirstyStats = false;
         [Header("Mental")]
         public float mental;
         public float mentalMax = 100;
 
         public float StaminaTimer =0;
         public bool isTired = false;
+
+
+        public GameObject seringueArm;
+        
 
 
         void Start () {
@@ -50,7 +56,8 @@ public class VitalState : MonoBehaviour {
             hunger = hungerMax;
             thirst = thirstMax;
             player = GetComponent<SUPERCharacterAIO>();
-
+            useHungerStats = true;
+            useThirstyStats = true;
 
         }
 	
@@ -83,12 +90,18 @@ public class VitalState : MonoBehaviour {
 
         private void SetThirsty()
         {
+            if (useThirstyStats)
+            {
+                thirst -= Time.deltaTime / thirstDecrease;
+            }
+
             if (thirst >= thirstMax)
             {
                 thirst = thirstMax;
             }
             if (thirst <= 0)
             {
+                useThirstyStats = false;
                 thirst = 0;
             }
             HUDVitals.instance.Ui_Thirsty(thirst, thirstMax);
@@ -96,12 +109,17 @@ public class VitalState : MonoBehaviour {
 
         private void SetHunger()
         {
+            if (useHungerStats)
+            {
+                hunger -= Time.deltaTime / hungerDecrease;
+            }
             if (hunger >= hungerMax)
             {
                 hunger = hungerMax;
             }
             if (hunger <= 0)
             {
+                useHungerStats = false;
                 hunger = 0;
             }
             HUDVitals.instance.Ui_Hunger(hunger, hungerMax);
@@ -113,18 +131,57 @@ public class VitalState : MonoBehaviour {
             if(health >= healthMax)
             {
                 health = healthMax;
+
             }
                 HUDVitals.instance.Ui_Health(health, healthMax);
         }
 
 
 
+        public bool CheckIfStatsIsFull(float stats,float max)
+        {
+            if(stats >= max)
+            {
+                return true;
+            }
+            return false;
+        }
 
+        public void ShowStatsFullMessage(bool healthFull,bool hungerFull,bool thirstyFull)
+        {
+            if (healthFull)
+            {
+                ScreenEventsManager.instance.SetVisualMessage("Votre vie est au maximum", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+            }
+            else if (hungerFull)
+            {
+                ScreenEventsManager.instance.SetVisualMessage("Votre faim est au maximum", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+            }
+            else if(thirstyFull)
+            {
+                ScreenEventsManager.instance.SetVisualMessage("Votre soif est au maximum", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+            }
+            return;
+        }
 
         public void AddHealth(float value)
         {
+
             health += value;
   
+        }
+        public void AddHunger(float value)
+        {
+
+            hunger += value;
+
+        }
+
+        public void AddThirsty(float value)
+        {
+
+            thirst += value;
+
         }
 
 

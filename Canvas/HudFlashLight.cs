@@ -50,7 +50,7 @@ public class HudFlashLight : MonoBehaviour
 
     public int CheckRemainingBateryInInventory()
     {
-        return Inventory.instance.AmountItemInInventory("Batery");
+        return Inventory.instance.AmountItemInInventory(5);
     }
 
     public void ShowInputReload()

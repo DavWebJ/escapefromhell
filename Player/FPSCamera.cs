@@ -94,7 +94,7 @@ namespace BlackPearl{
             Vector3 direction = cam.transform.forward;
             RaycastHit hit;
 
-            if (Physics.Raycast(origin, direction * RayLength, out hit))
+            if (Physics.Raycast(origin, direction * RayLength, out hit,mask))
             {
                 float dist = hit.distance;
                 if (hit.transform.TryGetComponent(out ItemToPickUp item) && dist <= RayLength)

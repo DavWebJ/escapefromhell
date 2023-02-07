@@ -169,6 +169,19 @@ public class InputManager : MonoBehaviour
         inventoryAction.pickup.Disable();
     }
 
+    public void PausedInput()
+    {
+        player.enableMovementControl = false;
+        inputs.Disable();
+    }
+
+    public void UnPausedInput()
+    {
+        
+        inputs.Enable();
+        player.enableMovementControl = true;
+    }
+
     public void EnableInputInventory()
     {
 

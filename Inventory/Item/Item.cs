@@ -7,6 +7,7 @@ namespace BlackPearl
     [CreateAssetMenu(menuName = "Inventory/Item/CreateItem")]
     public class Item : ScriptableObject
     {
+        public int ID;
         public string ItemName = "";
         [TextArea(10,15)]
         public string ItemDescription = "";
@@ -26,6 +27,12 @@ namespace BlackPearl
         public int maxBatery = 100;
         public GameObject ItemGroundPrefabs = null;
         public GameObject ArmPrefab = null;
+        public float hungerAdd = 0;
+        public float thirstyAdd = 0;
+        public float healthAdd = 0;
+        public bool canEat = false;
+        public bool canDrink = false;
+        public bool canHeal = false;
         [Header("Attributes")]
         public Attributes attributes = new Attributes();
 

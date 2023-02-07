@@ -170,7 +170,7 @@ public class ShotGunController : MonoBehaviour
                 }
                 else
                 {
-                    ScreenEventsManager.instance.SetVisualMessage("Plus de munition dans votre inventaire", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+                    ScreenEventsManager.instance.SetVisualMessage("Pas de munitions dans votre inventaire", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
 
 
                 }
@@ -276,7 +276,7 @@ public class ShotGunController : MonoBehaviour
         if (ammoToReload >= AmmoRemain)
         {
             ammoToReload = AmmoRemain;
-            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByname("shotgun_ammo"), ammoToReload);
+            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByID(2), ammoToReload);
 
             HUDShotgun.instance.currentAmmo = ammoToReload + HUDShotgun.instance.currentAmmo;
 
@@ -284,7 +284,7 @@ public class ShotGunController : MonoBehaviour
         }
         else
         {
-            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByname("shotgun_ammo"), ammoToReload);
+            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByID(2), ammoToReload);
             HUDShotgun.instance.currentAmmo += ammoToReload;
 
         }

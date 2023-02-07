@@ -57,8 +57,9 @@ namespace BlackPearl
             
             float percent = Inventory.instance.GetPercentage(value,max);
             float currVal = health_fill.fillAmount;
-            health_fill.fillAmount = Mathf.Lerp(currVal, percent, Time.deltaTime * 5);
-            health_fill.fillAmount = percent;
+
+            health_fill.fillAmount = Mathf.Lerp(currVal, percent, Time.deltaTime * 10f);
+            
            
             
         }
@@ -67,8 +68,9 @@ namespace BlackPearl
         {
 
             float percent = Inventory.instance.GetPercentage(value, max);
-
-            mental_fill.fillAmount = percent;
+            float currVal = mental_fill.fillAmount;
+            mental_fill.fillAmount = Mathf.Lerp(currVal, percent, Time.deltaTime * 10f);
+            //mental_fill.fillAmount = percent;
 
 
         }
@@ -77,8 +79,9 @@ namespace BlackPearl
         {
 
             float percent = Inventory.instance.GetPercentage(value, max);
-
-            hunger_fill.fillAmount = percent;
+            float currVal = hunger_fill.fillAmount;
+            hunger_fill.fillAmount = Mathf.Lerp(currVal, percent, Time.deltaTime * 10f);
+            //hunger_fill.fillAmount = percent;
 
 
         }
@@ -87,8 +90,9 @@ namespace BlackPearl
         {
 
             float percent = Inventory.instance.GetPercentage(value, max);
-
-            thirsty_fill.fillAmount = percent;
+            float currVal = thirsty_fill.fillAmount;
+            thirsty_fill.fillAmount = Mathf.Lerp(currVal, percent, Time.deltaTime * 10f);
+            //thirsty_fill.fillAmount = percent;
 
 
         }

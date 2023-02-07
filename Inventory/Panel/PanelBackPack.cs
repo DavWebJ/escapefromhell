@@ -109,29 +109,11 @@ namespace BlackPearl
             if(currentItem != null)
             {
 
-                if(currentItem.itemCategory == Category.Consumable)
+                if(currentItem.itemCategory == Category.Consumable && currentItem.canUse)
                 {
-                    switch (currentItem.attributes.name)
-                    {
-                        case "health":
-                            if(player.playerVitals.health < player.playerVitals.healthMax)
-                            {
-                              
-                                if (currentItem.attributes.type == "add")
-                                {
-                                    StartCoroutine(InterractActionUse());
-                                }
-                            }
-                            else
-                            {
-                                Inventory.instance.OpenCloseInventory();
-                                ScreenEventsManager.instance.SetVisualMessage("Votre vie est au maximum", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
-                            }
 
-                            break;
-                        default:
-                            break;
-                    }
+                     StartCoroutine(InterractActionUse());
+
                 }
             }
            
@@ -140,25 +122,87 @@ namespace BlackPearl
         public IEnumerator InterractActionUse()
         {
             inInterract = true;
-            if (currentItem.attributes.consumableType == "eat")
+            if (currentItem.canEat)
             {
-                AudioM.instance.PlayOneShotClip(AudioM.instance.FxAudioSource, AudioM.instance.eat);
-            }
-            if (currentItem.attributes.consumableType == "seringue")
-            {
-                // play seringue sound
-                // play animation arm
+                if(!player.playerVitals.CheckIfStatsIsFull(player.playerVitals.hunger, player.playerVitals.hungerMax))
+                {
+                    AudioM.instance.PlayOneShotClip(AudioM.instance.FxAudioSource, AudioM.instance.eat);
+                    player.playerVitals.AddHunger(currentItem.hungerAdd);
+                    Inventory.instance.DestroyItemFromInventory(currentItem, false);
+                    currentSlotSelected.UpdateSlot();
+                    yield return new WaitForSeconds(0.5f);
+                    inInterract = false;
+                    yield break;
+                }
+                else
+                {
+                    player.playerVitals.ShowStatsFullMessage(false, true, false);
+                    inInterract = false;
+                    yield break;
+                }
+
             }
 
-            if (currentItem.attributes.consumableType == "medoc")
+
+            if(currentItem.canDrink)
             {
-                AudioM.instance.PlayOneShotClip(AudioM.instance.FxAudioSource, AudioM.instance.pills);
+                if(!player.playerVitals.CheckIfStatsIsFull(player.playerVitals.thirst, player.playerVitals.thirstMax))
+                {
+                    AudioM.instance.PlayOneShotClip(AudioM.instance.FxAudioSource, AudioM.instance.drink);
+                    player.playerVitals.AddThirsty(currentItem.thirstyAdd);
+                    Inventory.instance.DestroyItemFromInventory(currentItem, false);
+                    currentSlotSelected.UpdateSlot();
+                    yield return new WaitForSeconds(0.5f);
+                    inInterract = false;
+                    yield break;
+                }
+                else
+                {
+                    player.playerVitals.ShowStatsFullMessage(false, false, true);
+                    inInterract = false;
+                    yield break;
+                }
+
             }
-            yield return new WaitForSeconds(1);
-            Inventory.instance.DestroyItemFromInventory(currentItem, false);
-            player.playerVitals.AddHealth(currentItem.attributes.value);
-            currentSlotSelected.UpdateSlot();
-            inInterract = false;
+
+
+            if (currentItem.canHeal)
+            {
+                if(!player.playerVitals.CheckIfStatsIsFull(player.playerVitals.health, player.playerVitals.healthMax))
+                {
+                    if (currentItem.attributes.name == "seringue")
+                    {
+       
+                        Inventory.instance.OpenCloseInventory();
+            
+                        SlotHotBar tempslot = HotBar.instance.GetCurrentSlot();
+             
+                        player.fpscam.DestroyCurrentArms();
+           
+                        GameObject go = Instantiate(player.playerVitals.seringueArm, player.fpscam.armsHolder);
+                        yield return new WaitForSeconds(2.5f);
+                        HotBar.instance.RespawnArm(tempslot);
+                    }
+
+                    if (currentItem.attributes.name == "paracetamol")
+                    {
+                        AudioM.instance.PlayOneShotClip(AudioM.instance.FxAudioSource, AudioM.instance.pills);
+                    }
+                    player.playerVitals.AddHealth(currentItem.healthAdd);
+                    Inventory.instance.DestroyItemFromInventory(currentItem, false);
+                    currentSlotSelected.UpdateSlot();
+                    yield return new WaitForSeconds(0.5f);
+                    inInterract = false;
+                    yield break;
+                }
+                else
+                {
+                    player.playerVitals.ShowStatsFullMessage(true, false, false);
+                    inInterract = false;
+                    yield break;
+                }
+
+            }
             yield break;
         }
         public void OnDropItem(InputAction.CallbackContext context)

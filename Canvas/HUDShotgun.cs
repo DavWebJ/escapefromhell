@@ -44,7 +44,7 @@ public class HUDShotgun : MonoBehaviour
 
     public int CheckRemainingAmmoShotGunInInventory()
     {
-        return Inventory.instance.AmountItemInInventory("shotgun_ammo");
+        return Inventory.instance.AmountItemInInventory(2);
     }
     public void ShowReloadInput()
     {

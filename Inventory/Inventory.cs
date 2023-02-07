@@ -143,7 +143,15 @@ namespace BlackPearl
             
             if(AudioM.instance != null)
             {
-                AudioM.instance.PlayOneShotClip(AudioM.instance.InventoryAudioSource, AudioM.instance.openHudClip);
+                if (panelBackPack.isBackPackEquiped)
+                {
+                    AudioM.instance.PlayOneShotClip(AudioM.instance.InventoryAudioSource, AudioM.instance.openHudClip);
+                }
+                else
+                {
+                    AudioM.instance.PlayOneShotClip(AudioM.instance.InventoryAudioSource, AudioM.instance.hover_clip);
+                }
+
             }
            
             GetComponent<Canvas>().enabled = isInventoryOpen;
@@ -314,6 +322,12 @@ namespace BlackPearl
         public Item getItemByname(string item_name)
         {
             ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData.ItemName == item_name).FirstOrDefault();
+            return itemInInventory.itemData;
+        }
+
+        public Item getItemByID(int id)
+        {
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData.ID == id).FirstOrDefault();
             return itemInInventory.itemData;
         }
 
@@ -493,18 +507,19 @@ namespace BlackPearl
 
 
 
-        public int AmountItemInInventory(string _name)
+
+        public int AmountItemInInventory(int _id)
         {
-            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData.ItemName == _name).FirstOrDefault();
-            if(itemInInventory != null)
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData.ID == _id).FirstOrDefault();
+            if (itemInInventory != null)
             {
 
                 return itemInInventory.amount;
             }
 
-                return 0;
-            
-            
+            return 0;
+
+
         }
 
 

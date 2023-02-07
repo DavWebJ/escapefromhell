@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using BlackPearl;
+using SUPERCharacter;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
@@ -10,13 +11,18 @@ public class Scremer : MonoBehaviour
     public AudioClip[] screamerClip;
     public GameObject monster;
     public Animator anim;
-    //public FirstPersonAIO player;
+    public Transform playerT;
+    public GameObject point;
+    public SUPERCharacterAIO player;
+    public bool isActive;
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
         anim = monster.GetComponent<Animator>();
         audioSource.playOnAwake = false;
         monster.SetActive(false);
+        isActive = true;
+        point.SetActive(false);
     
     }
 
@@ -26,10 +32,13 @@ public class Scremer : MonoBehaviour
         
         if (other.tag == "Player")
         {
-           // other.GetComponent<FirstPersonAIO>().SetController(false);
-            
+            if (!isActive) { return; }
+            player = other.GetComponent<SUPERCharacterAIO>();
+            player.PausePlayer(PauseModes.FreezeInPlace);
+            playerT = other.transform;
             StartCoroutine(PlayScreamer());
             
+
         }
     }
 
@@ -38,18 +47,18 @@ public class Scremer : MonoBehaviour
 
         AudioClip clip = screamerClip[Random.Range(0, screamerClip.Length)];
 
-       // AudioM.instance.screamer_audios.PlayOneShot(clip);
-       
-       //player.StartCoroutine(player.CameraShake(0.5f, 0.5f));
-        
-        
-        
         monster.SetActive(true);
+        point.SetActive(true);
         monster.GetComponent<Animator>().enabled = true;
-     
-        yield return new WaitForSeconds(1);
-        //player.SetController(true);
-        Destroy(monster.gameObject);   
+        monster.transform.LookAt(playerT);
+        audioSource.PlayOneShot(clip);
+        yield return new WaitForSeconds(1.5f);
+        player.UnpausePlayer();
+        Destroy(monster.gameObject);
+        isActive = false;
+        yield return new WaitForSeconds(clip.length);
+        
+        
         Destroy(gameObject);
     }
 

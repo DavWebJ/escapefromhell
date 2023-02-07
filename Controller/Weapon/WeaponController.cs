@@ -202,7 +202,7 @@ public class WeaponController : MonoBehaviour
                 }
                 else
                 {
-                    ScreenEventsManager.instance.SetVisualMessage("Plus de munition dans votre inventaire", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+                    ScreenEventsManager.instance.SetVisualMessage("Pas de munitions dans votre inventaire", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
                     
 
                 }
@@ -289,14 +289,14 @@ public class WeaponController : MonoBehaviour
         if (ammoToReload >= AmmoRemain)
         {
             ammoToReload = AmmoRemain;
-            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByname("ammo_gun"), ammoToReload);
+            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByID(1), ammoToReload);
             
             HUDWeapon.instance.currentAmmo = ammoToReload + HUDWeapon.instance.currentAmmo;
 
             
         }else
         {
-            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByname("ammo_gun"), ammoToReload);
+            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByID(1), ammoToReload);
             HUDWeapon.instance.currentAmmo += ammoToReload;
           
           

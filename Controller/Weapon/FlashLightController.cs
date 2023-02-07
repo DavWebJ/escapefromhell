@@ -188,7 +188,7 @@ public class FlashLightController : MonoBehaviour
         yield return new WaitForSeconds(batery_out_clip.length);
         HudFlashLight.instance.currentBatery = HudFlashLight.instance.maxBatery;
         
-        Inventory.instance.DestroyItemFromInventory(Inventory.instance.getItemByname("Batery"),false);
+        Inventory.instance.DestroyItemFromInventory(Inventory.instance.getItemByID(5),false);
         arm.anim.SetTrigger("Reload");
         yield return new WaitForSeconds(arm.anim.GetCurrentAnimatorClipInfo(0).Length);
         InputManager.instance.flInputs.FlashLightInputController.openclose.Enable();

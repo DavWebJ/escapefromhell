@@ -184,6 +184,15 @@ namespace BlackPearl
 
         }
 
+        public void RespawnArm(SlotHotBar slot)
+        {
+            if (slot != null && currentItem != null)
+            {
+                player.fpscam.AddNewArms(slot.currentItem);
+                SelectButton(slot.GetComponent<Button>());
+            }
+        }
+
         public void ArmSelection(SlotHotBar slot)
         {
             if (isInTransitionArm)
@@ -208,7 +217,7 @@ namespace BlackPearl
             }
             else
             {
-                print("null");
+               
                 return;
             }
         }
@@ -223,7 +232,7 @@ namespace BlackPearl
                 _arm.PlayHideAnimation();
                 yield return new WaitForSeconds(_arm.anim.GetCurrentAnimatorClipInfo(0).Length);
                 player.fpscam.DestroyCurrentArms();
-                yield return new WaitForSeconds(0.3f);
+                yield return new WaitForSeconds(0.1f);
                 player.fpscam.AddNewArms(newItem);
                 isInTransitionArm = false;
             }
