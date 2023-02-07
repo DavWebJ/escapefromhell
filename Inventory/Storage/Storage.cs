@@ -17,9 +17,8 @@ namespace BlackPearl
         public string lootType = "";
         public Storage()
         {
-            this.itemType = ItemType.Storage;
-            this.amount = 1;
-            this.maxAmount = 1;
+            this.itemType = ItemType.Loot;
+            this.maxStack = 1;
             this.stackable = false;
             
         }
@@ -28,7 +27,7 @@ namespace BlackPearl
         {
             if(useRandomLoot && !randomListCreated)
             {
-                lootItems = GameManager.instance.resources.GetRandomLoot(lootType,maxStock);
+               // lootItems = GameManager.instance.resources.GetRandomLoot(itemType,maxStock);
                 randomListCreated = true;
             }else
             {

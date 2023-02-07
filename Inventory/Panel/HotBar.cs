@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using SUPERCharacter;
 using UnityEngine;
 
 namespace BlackPearl
@@ -10,14 +11,20 @@ namespace BlackPearl
     {
         public static HotBar instance = null;
         public Transform gridSlots = null;
-        public int currSlot = 0;
-        FirstPersonAIO player = null;
-        private int NumberSlot = 6;
+        public int maxItemInHotBar = 6;
+        public int index = 0;
+        public SUPERCharacterAIO player;
+        public SlotHotBar currentSlotSelected;
+        public Item currentItem;
         private float timer = 0;
         private float delaySelection = 0.2f;
-  
+        private PlayerInputAction inputs;
+        PlayerInputAction.HotbarActionInputActions hotbarActions;
         public bool canSelect = false;
-        
+        public bool isInTransitionArm = false;
+        public GameObject slotHotbarPref;
+
+
         private void Awake() {
             
             if(instance == null)
@@ -26,32 +33,45 @@ namespace BlackPearl
             }
             
             gridSlots = transform.Find("Grid");
-
+            inputs = new PlayerInputAction();
+            hotbarActions = inputs.HotbarActionInput;
 
         }
 
         private void Start()
         {
+            currentSlotSelected = null;
+            hotbarActions.UseItem.performed += CheckCurrentItem;
+            hotbarActions.DropItem.performed += OnDropItem;
+
+            if (gridSlots.childCount == maxItemInHotBar) return;
+
+            CreateHotbarSlots();
+            UiNavigationManager.instance.EnableNavigationHotbar();
+            SelectButton(getFirstButton());
 
         }
-
+        private void OnEnable()
+        {
+            hotbarActions.DropItem.Enable();
+            hotbarActions.UseItem.Enable();
+        }
 
         private void Update() {
             
-            if(!GameManager.instance.CheckHUD)
-            {
-                if (timer <= 0)
-                    canSelect = true;
+
+            if (timer <= 0 && !isInTransitionArm)
+                canSelect = true;
                 
-                if(timer > 0)
-                {
-                    canSelect = false;
-                    timer -= Time.deltaTime;
-                }
+            if(timer > 0 || isInTransitionArm)
+            {
+                canSelect = false;
+                timer -= Time.deltaTime;
             }
+            
         }
 
-        public void Init(FirstPersonAIO _player)
+        public void Init(SUPERCharacterAIO _player)
         {
             player =_player;
 
@@ -62,13 +82,13 @@ namespace BlackPearl
          
             if (!canSelect)
                 return;
-            if (currSlot < gridSlots.childCount - 1)
+            if (index < gridSlots.childCount - 1)
             {
-                currSlot++;
+                index++;
             }
             else
             {
-                currSlot = 0;
+                index = 0;
             }
         
             
@@ -80,13 +100,13 @@ namespace BlackPearl
             if (!canSelect)
                 return;
           
-            if (currSlot == 0)
+            if (index == 0)
             {
-                currSlot = gridSlots.childCount - 1;
+                index = gridSlots.childCount - 1;
             }
             else
             {
-                currSlot--;
+                index--;
             }
         
             Selection();
@@ -106,192 +126,162 @@ namespace BlackPearl
             for (int i = 0; i < gridSlots.childCount; i++)
             {
              
-                if(i == currSlot)
+                if(i == index)
                 {
+
                     SlotHotBar slot = gridSlots.GetChild(i).GetComponent<SlotHotBar>();
                     gridSlots.GetChild(i).GetComponent<Button>().Select();
-                    
-                    if (slot.currentItem != null)
-                    {
-                        OnSelectSlot(slot);
-                    }
-                    else
-                    {
-                        //HUDWeapon.instance.gameObject.SetActive(false);
-                        SlotHotBar newslot = GetCurrentSlot();
-                        if(newslot.currentItem == null)
-                        {
-                           
-                            
-                            HUDWeapon.instance.GetWeaponInfos(null);
-                            HUDWeapon.instance.isFlashlight = false;
-                            HUDWeapon.instance.ShowReload(false, "");
-                            HUDInfos.instance.ReloadInput(false);
-                            
-
-                            DestroyWeaponHands();
-                        }
-  
-                    }
-                   
-   
+                    currentSlotSelected = slot;
+                    currentItem = slot.currentItem;
+                    ArmSelection(slot);
                 }
             }
         }
 
-        public void OnSelectSlot(SlotHotBar slot)
+        public void SelectButton(Button btn)
         {
             
-            if (slot.currentItem == null || slot == null || slot.currentItem.WeaponArmPrefab == null)
+           if(btn != null)
+           {
+                
+                currentSlotSelected = btn.GetComponent<SlotHotBar>();
+                currentItem = currentSlotSelected.currentItem;
+
+                btn.Select();
+                
+                int tempIndex = currentSlotSelected.transform.GetSiblingIndex();
+                if(index != tempIndex)
+                {
+                    index = tempIndex;
+                }
+
+                    
+            }
+            
+        }
+
+
+
+        public void SelectButtonByHotbar(Button btn)
+        {
+
+            if (btn != null)
+            {
+
+                currentSlotSelected = btn.GetComponent<SlotHotBar>();
+                currentItem = currentSlotSelected.currentItem;
+
+                btn.Select();
+                ArmSelection(currentSlotSelected);
+                int tempIndex = currentSlotSelected.transform.GetSiblingIndex();
+                if (index != tempIndex)
+                {
+                    index = tempIndex;
+                }
+
+
+            }
+
+        }
+
+        public void ArmSelection(SlotHotBar slot)
+        {
+            if (isInTransitionArm)
                 return;
 
-            if (slot.currentItem.objectType == ObjectType.Equipable)
+            if(slot != null && currentItem != null)
             {
-            
-                Transform holder = Inventory.instance.player.fpscam.armsHolder;
                 
-                
-                StopCoroutine(PlayAnimationWithDelay(holder, slot.currentItem));
-                if (holder.childCount > 0)
+                ArmsController arm = player.fpscam.armsHolder.GetChild(0).GetComponent<ArmsController>();
+                if (arm != null)
                 {
-
-
-
-           
-                        StartCoroutine(PlayAnimationWithDelay(holder,slot.currentItem));
-            
-                }
-                else
-                {
+                    if(arm.armName == slot.currentItem.ArmPrefab.name)
+                    {
+                        
+                        return;
+                    }
                     
-                    GameObject weapon = Instantiate(slot.currentItem.WeaponArmPrefab, Inventory.instance.player.fpscam.armsHolder);
-                    if(weapon.GetComponent<WeaponController>() != null)
-                    {
-                       
-                        weapon.GetComponent<WeaponController>().SetItem(slot.currentItem);
-                        HUDWeapon.instance.gameObject.SetActive(true);
-                        HUDWeapon.instance.GetWeaponInfos(slot.currentItem);
-                    }
-
-                    if (weapon.GetComponent<FlashLightController>() != null)
-                    {
-                       
-                        weapon.GetComponent<FlashLightController>().SetItem(slot.currentItem);
-                        HUDWeapon.instance.gameObject.SetActive(true);
-                        HUDWeapon.instance.GetWeaponInfos(slot.currentItem);
-                    }
-
-                    if (weapon.GetComponent<LighterController>() != null)
-                    {
-
-                        weapon.GetComponent<LighterController>().SetItem(slot.currentItem);
-                        HUDWeapon.instance.GetWeaponInfos(null);
-                    }
-
+                    StartCoroutine(TransitionNewArm(arm,slot.currentItem));
+                    SelectButton(slot.GetComponent<Button>());
                 }
 
-                
             }
-
-
+            else
+            {
+                print("null");
+                return;
+            }
         }
 
-
-
-
-        public IEnumerator PlayAnimationWithDelay(Transform arms,Item item)
+        public IEnumerator TransitionNewArm(ArmsController _arm,Item newItem)
         {
-            
-            arms.GetChild(0).GetComponent<Animator>().SetTrigger("hide");
-            yield return new WaitForSeconds(0.3f);
-            Destroy(arms.GetChild(0).gameObject);
-            yield return new WaitForSeconds(0.3f);
-
-            GameObject weapon = Instantiate(item.WeaponArmPrefab, Inventory.instance.player.fpscam.armsHolder);
-            if (weapon.GetComponent<FlashLightController>() != null)
-            {
-
-                weapon.GetComponent<FlashLightController>().SetItem(item);
-                HUDWeapon.instance.GetWeaponInfos(item);
-            }
-            if (weapon.GetComponent<WeaponController>() != null)
-            {
-
-                weapon.GetComponent<WeaponController>().SetItem(item);
-                HUDWeapon.instance.GetWeaponInfos(item);
-            }
-            if (weapon.GetComponent<LighterController>() != null)
-            {
-
-                weapon.GetComponent<LighterController>().SetItem(item);
-                HUDWeapon.instance.GetWeaponInfos(null);
-            }
 
             
+            if(_arm != null)
+            {
+                isInTransitionArm = true;
+                _arm.PlayHideAnimation();
+                yield return new WaitForSeconds(_arm.anim.GetCurrentAnimatorClipInfo(0).Length);
+                player.fpscam.DestroyCurrentArms();
+                yield return new WaitForSeconds(0.3f);
+                player.fpscam.AddNewArms(newItem);
+                isInTransitionArm = false;
+            }
+
+
             yield break;
-
-        }
-
-
-        
-
-
-        public void DestroyWeaponHands()
-        {
-            Transform holder = player.fpscam.armsHolder;
-            if(holder.childCount > 0)
-            {
-                
-                for (int i = 0; i < holder.childCount; i++)
-                {
-                    
-                    holder.GetChild(i).GetComponent<Animator>().SetTrigger("hide");
-                    Destroy(holder.GetChild(i).gameObject,0.3f);
-                     
-                }
-                
-            }
-           
-           
-            HUDWeapon.instance.GetWeaponInfos(null);
-       
-        }
-
-       
-
-        public bool AddItemToSlot(Item item)
-        {
-            if(item == null)
-                return false;
-
-            SlotHotBar slotSelected = GetCurrentSlot();
-
-    
-            if (slotSelected == null)
-                return false;
             
-            if (slotSelected.currentItem != null)
+        }
+
+        public Button LastButtonSelected()
+        {
+
+            return gridSlots.GetChild(index).GetComponent<Button>();
+        }
+
+        public Button GetCurrentSlotButton(Item item)
+        {
+            Button current;
+            for (int i = 0; i < gridSlots.childCount; i++)
             {
-
-                slotSelected = GetNextSlot();
-
+                if(gridSlots.GetChild(i).GetComponent<SlotHotBar>().currentItem == item)
+                {
+                    current = gridSlots.GetChild(i).GetComponent<Button>();
+                    return current;
+                }
             }
 
-
-
-
-            ChangeItem(item,slotSelected);
-            Selection();
-            HUD.instance.SetVisualMessage(true, item);
-            return true;
+            return null;
         }
+
+
+        public void CheckCurrentItem(InputAction.CallbackContext context)
+        {
+            
+            if (currentSlotSelected == null || currentItem == null)
+            {
+            
+                return;
+            }
+
+            if (currentItem.itemCategory == Category.Consumable)
+            {
+                if (currentItem.attributes.name != string.Empty)
+                { 
+                    
+
+                }
+            }
+
+        }
+
 
         public SlotHotBar GetCurrentSlot()
         {
             
             for (int i = 0; i < gridSlots.childCount; i++)
             {
-                if(currSlot == gridSlots.GetChild(i).GetSiblingIndex())
+                if(index == gridSlots.GetChild(i).GetSiblingIndex())
                 {
                    
                     return gridSlots.GetChild(i).GetComponent<SlotHotBar>();
@@ -301,63 +291,52 @@ namespace BlackPearl
             return null;
         }
 
-        public SlotHotBar GetNextSlot()
+        public Button getFirstButton()
         {
-        
-            for (int i = 0; i < gridSlots.childCount; i++)
-            {
-                if (currSlot == gridSlots.GetChild(i).GetSiblingIndex())
-                {
-                    currSlot += 1;
-                    
-                    return gridSlots.GetChild(i +1).GetComponent<SlotHotBar>();
-                }
-            }
-
-            return null;
+      
+           return gridSlots.GetChild(0).GetComponent<Button>();
+                
         }
 
-        public bool SetItemToSlot(Item item)
+        public void OnDropItem(InputAction.CallbackContext context)
         {
-           
-            if(item == null || item.amount <= 0)
+            if (Inventory.instance.isInventoryOpen) return;
+
+            if (currentItem != null)
             {
-                return false;
+                GameObject groundItem = Instantiate(currentItem.ItemGroundPrefabs);
+                groundItem.GetComponent<ItemToPickUp>().amount = Inventory.instance.GetAmountItemHotBarInventory(groundItem.GetComponent<ItemToPickUp>().item);
+                groundItem.transform.position = player.fpscam.targetEject.position;
+                Rigidbody rb = groundItem.GetComponent<Rigidbody>();
+                rb.useGravity = true;
+                groundItem.GetComponent<MeshCollider>().enabled = true;
+                groundItem.GetComponent<MeshCollider>().convex = true;
+                groundItem.GetComponent<ItemGroundManager>().isDropped = true;
+                rb.AddForce(player.fpscam.targetEject.transform.forward *
+                    player.fpscam.dropForce * rb.mass, ForceMode.Impulse);
+                Inventory.instance.DestroyItemFromHotBarInventory(currentItem);
+                player.fpscam.DestroyCurrentArms();
+                currentItem = null;
+                currentSlotSelected = null;
+
+                SelectButton(LastButtonSelected());
+                return;
             }
-            
-            for (int i = 0; i < gridSlots.childCount; i++)
-            {
-                if(i == currSlot)
-                {
-                    
-                    SlotHotBar slot = gridSlots.GetChild(i).GetComponent<SlotHotBar>();
-                    if(slot.currentItem != null)
-                    {
-                        print("busy");
-                    }
-                    else
-                    {
-                        print("no busy");
-                    }
-                    ChangeItem(item,slot);
-                    Selection();
-                    return true;
-                }
-                else
-                {
-                    print(".....");
-                }
-            }
-            return false;
         }
 
-        public void ChangeItem(Item item,SlotHotBar slot)
+
+        public void CreateHotbarSlots()
         {
-        
-            slot.currentItem = item;
-            slot.itemIcon.sprite = item.ItemIcon;
-            slot.itemIcon.enabled = true;
-            
+            if (gridSlots == null || maxItemInHotBar <= 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < maxItemInHotBar; i++)
+            {
+               GameObject slot =  Instantiate(slotHotbarPref, gridSlots);
+                slot.GetComponent<SlotHotBar>().itemIcon.enabled = true;
+            }
         }
 
     }

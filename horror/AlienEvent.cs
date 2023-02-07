@@ -11,8 +11,7 @@ public class AlienEvent : MonoBehaviour
         if(other.tag == "Player")
         {
             monster.SetActive(true);
-            Inventory.instance.player.playerCanMove = false;
-            Inventory.instance.player.enableCameraMovement = false;
+
             Destroy(gameObject);
             
         }

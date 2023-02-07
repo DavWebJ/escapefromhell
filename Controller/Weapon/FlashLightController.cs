@@ -1,317 +1,309 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine.InputSystem;
 using BlackPearl;
+using SUPERCharacter;
+using System.Collections;
 using UnityEngine;
+using VLB;
+
 [RequireComponent(typeof(AudioSource))]
 public class FlashLightController : MonoBehaviour
 {
     [Header("References")]
-    private FlashLightInput inputActions;
+
     public WeaponItem weapon = null;
     [SerializeField] private AudioSource audios = null;
-    private Animator animator = null;
-    private FirstPersonAIO player;
+    public AudioClip batery_out_clip, fl_reload_clip;
+    public Gradient lightColor;
+    private SUPERCharacterAIO player;
 
     [Header("FlashLight parameter")]
     [SerializeField] public Light flashlight;
     public float DefaultIntensity = 8f;
-    public int batery_remain = 0;
-    public bool isFlashlightOn = false;
-    public float timerLight = 0;
+    public bool isFlashlightEquiped = false;
     public bool isReloading = false;
-    public string weaponItemName;
     public bool isInit = false;
+    public bool switch_on = false;
+
+    public float timer = 0;
+    public float maxTimeToDecrease;
+    public int bateryValueDecrease = 5;
+    
+    public ArmsController arm;
+
+    [Header("Volumetric Light")]
+    public bool initFx = false;
+    public bool stopflicker = false;
+    public VolumetricLightBeam volumetricLight;
+    public float volumetricLightDefaultIntensity = 0.12f;
+    public float volumetricDecreaseTime = 2;
+
+    public FlashLightInput flInput;
+    FlashLightInput.FlashLightInputControllerActions FLActions;
 
     private void Awake()
     {
-        inputActions = new FlashLightInput();
-        HUDWeapon.instance.GetWeaponInfos(null);
 
- 
+        flInput = new FlashLightInput();
+        FLActions = flInput.FlashLightInputController;
 
-        if (!GameManager.instance.CheckHUD)
-        {
-            inputActions.FlashLightInputController.openclose.performed += ctx => OpenCloseFlashLight();
-        }
-
-        inputActions.FlashLightInputController.reload.performed += ctx => CheckForReloadingBattery();
+        FLActions.openclose.performed += ctx => SwitchFlashLight();
+        FLActions.reload.performed += ctx => CheckForReloadingBattery();
     }
 
     private void OnEnable()
     {
-        inputActions.FlashLightInputController.Enable();
-        
+        FLActions.Enable();
     }
-
     private void OnDisable()
     {
-        inputActions.FlashLightInputController.Disable();
-
+        FLActions.Disable();
     }
 
-    private void OnDestroy()
+    private void Start()
     {
-        this.gameObject.SetActive(false);
-    }
 
-    public void InitialiseFlashLightController()
-    {
-        audios = GetComponent<AudioSource>();
-        animator = GetComponent<Animator>();
-
-        audios.playOnAwake = false;
-        audios.loop = false;
-
-        player = FindObjectOfType<FirstPersonAIO>();
-        isFlashlightOn = false;
+        player = FindObjectOfType<SUPERCharacterAIO>();
         flashlight.enabled = false;
-        
-        audios.PlayOneShot(weapon.fl_equiped_sound);
-        HUD.instance.ChangeCrossHair(HUD.crosshair_type.normal);
         flashlight.intensity = DefaultIntensity;
-        HUDWeapon.instance.isFlashlight = true;
-
-        HUDWeapon.instance.GetWeaponInfos(weapon);
-        isInit = true;
-    }
-
-    public void SetItem(Item item)
-    {
-
-        if (item.itemType != ItemType.FlashLight)
-            return;
-        weapon = item as WeaponItem;
-
-
-
+        maxTimeToDecrease = 3;
+        arm = GetComponent<ArmsController>();
+        volumetricLight = flashlight.GetComponent<VolumetricLightBeam>();
+        volumetricLight.intensityGlobal = 0;
         InitialiseFlashLightController();
 
     }
 
+
+
+    private void OnDestroy()
+    {
+        
+        this.gameObject.SetActive(false);
+    }
+
+
+    public void InitialiseFlashLightController()
+    {
+        audios = GetComponent<AudioSource>();
+
+
+        audios.playOnAwake = false;
+        audios.loop = false;
+
+        player = FindObjectOfType<SUPERCharacterAIO>();
+        isFlashlightEquiped = false;
+        flashlight.enabled = false;
+        
+        HUD.instance.ChangeCrossHair(HUD.crosshair_type.normal);
+        FlashLightEquiped();
+        
+        ManageTheLight();
+        
+        isInit = true;
+    }
+
+
     public void CheckForReloadingBattery()
     {
-        if (weapon.batery <= 0 && !player.fpscam.isInterracting && !GameManager.instance.CheckHUD)
+        if (Inventory.instance.isInventoryOpen) { return; }
+        if (player.fpscam.currentItem != null) { return; }
+
+        if (HudFlashLight.instance.currentBatery <= 0)
         {
-            if (weapon.batery <= 0 && batery_remain > 0 )
+            if (HudFlashLight.instance.CheckRemainingBateryInInventory() > 0 )
             {
-                InputManager.instance.inputs.UI.Disable();
+             
                 StartCoroutine(ReloadingBatery());
+            }
+            else
+            {
+                ScreenEventsManager.instance.SetVisualMessage("Pas de piles dans votre inventaire", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
             }
 
         }
     }
 
-    public void OpenCloseFlashLight()
+    public void FlashLightEquiped()
     {
-        if (weapon.batery <= 0) return;
 
-        isFlashlightOn = !isFlashlightOn;
-        SwitchFlashLight(isFlashlightOn);
-
-    }
-
-    public void SwitchFlashLight(bool activate)
-    {
-        if (!audios.isPlaying)
-            audios.PlayOneShot(weapon.on_off_clip);
-
-        if (activate)
+        isFlashlightEquiped = !isFlashlightEquiped;
+        
+        if (!isFlashlightEquiped)
         {
-
-            flashlight.enabled = true;
-
+            HudFlashLight.instance.flashlightEquiped = false;
+            HudFlashLight.instance.HideHud();
+            
         }
         else
         {
-
-            flashlight.enabled = false;
-
+            HudFlashLight.instance.flashlightEquiped = true;
+            HudFlashLight.instance.ShowHud();
+            HudFlashLight.instance.HideInputReload();
         }
-
 
     }
 
 
+    public void StopFx()
+    {
+        if (stopflicker)
+        {
+            StopCoroutine("playWithBeam");
+            initFx = false;
+
+        }
+    }
+    public void SwitchFlashLight()
+    {
+        switch_on = !switch_on;
+        AudioM.instance.PlayOneShotClip(AudioM.instance.AudiosHUD, AudioM.instance.hover_clip);
+
+        ManageTheLight();
+
+    }
+
+    public void ResetAll()
+    {
+        
+
+        if (switch_on)
+        {
+            SwitchFlashLight();
+            FlashLightEquiped();
+        }
+        else
+        {
+            FlashLightEquiped();
+        }
+    }
 
     public IEnumerator ReloadingBatery()
     {
         isReloading = true;
-        animator.SetTrigger("hide");
+        StopFx();
+        
         if (!audios.isPlaying)
         {
-            audios.PlayOneShot(weapon.batery_out_clip);
+            audios.PlayOneShot(batery_out_clip);
         }
-        yield return new WaitForSeconds(weapon.batery_out_clip.length);
-        weapon.batery = weapon.batery_max;
-        Inventory.instance.UpdateConsumableInInventory("Batery", 1);
-        if (!audios.isPlaying)
-        {
-            audios.PlayOneShot(weapon.fl_reload_clip);
-        }
-        yield return new WaitForSeconds(weapon.fl_reload_clip.length);
-        animator.Play("Get");
-
-        HUDWeapon.instance.Ui_Batery(weapon.batery, weapon.batery_max);
-        flashlight.intensity = DefaultIntensity;
+        yield return new WaitForSeconds(batery_out_clip.length);
+        HudFlashLight.instance.currentBatery = HudFlashLight.instance.maxBatery;
+        
+        Inventory.instance.DestroyItemFromInventory(Inventory.instance.getItemByname("Batery"),false);
+        arm.anim.SetTrigger("Reload");
+        yield return new WaitForSeconds(arm.anim.GetCurrentAnimatorClipInfo(0).Length);
+        InputManager.instance.flInputs.FlashLightInputController.openclose.Enable();
+        SwitchFlashLight();
         isReloading = false;
-        InputManager.instance.inputs.UI.Enable();
 
     }
 
-    public void UpdateIcon()
+
+
+
+    public void FlashLightFX()
     {
-        HUDWeapon.instance.GetWeaponInfos(weapon);
-        if (weapon.batery > 0)
-        {
-            HUDWeapon.instance.batery.SetActive(true);
-            HUDWeapon.instance.icon.sprite = HUDWeapon.instance.batery_normal;
-        }
-        else
-        {
-            HUDWeapon.instance.batery.SetActive(false);
-            HUDWeapon.instance.icon.sprite = HUDWeapon.instance.batery_empty;
-        }
-    }
+        
 
-    public void CheckMessage()
-    {
-        if (!isFlashlightOn && weapon.batery > 0)
+        if(HudFlashLight.instance.currentBatery <= 25 && HudFlashLight.instance.currentBatery > 5 && !initFx && !isReloading && !stopflicker)
         {
-            
-            HUDWeapon.instance.canUseFlashLight = true;
-            HUDInfos.instance.ReloadInput(false);
-        }
-        else if (!isFlashlightOn && weapon.batery <= 0 && batery_remain > 0)
-        {
-            HUDWeapon.instance.canUseFlashLight = false;
-            HUDInfos.instance.ReloadInput(true);
-            HUDWeapon.instance.ShowReload(false, "");
-            // HUDWeapon.instance.ShowReload(true,"Appuyer sur " + GameManager.instance.input.input_reload+ " pour recharger votre lampe torche");
-
-        }
-        else if (!isFlashlightOn && weapon.batery <= 0 && batery_remain <= 0)
-        {
-            HUDWeapon.instance.canUseFlashLight = false;
-            HUDWeapon.instance.ShowReload(true, "Trouver des piles pour recharger votre lampe torche");
-        }
-        else if (isFlashlightOn && weapon.batery != 0)
-        {
-            HUDWeapon.instance.canUseFlashLight = true;
-            HUDWeapon.instance.ShowReload(false, "");
-            HUDInfos.instance.ReloadInput(false);
-        }
-        else if (isFlashlightOn && weapon.batery <= 0 && batery_remain > 0)
-        {
-            HUDWeapon.instance.canUseFlashLight = false;
-            HUDInfos.instance.ReloadInput(true);
-            HUDWeapon.instance.ShowReload(true, "Appuyer sur X pour recharger votre lampe torche");
-        }
-        else
-        {
-            HUDWeapon.instance.canUseFlashLight = false;
-            // HUDWeapon.instance.ShowReload(true,"Trouver des piles pour recharger votre lampe torche");
+            initFx = true;
+            StartCoroutine(playWithBeam());
         }
 
-    }
-    public void updateInputsFlashLight()
-    {
 
-
-        if (!player.IsGrounded)
+        if(HudFlashLight.instance.currentBatery <= 0 && initFx)
         {
-
-            animator.SetBool(weapon.fl_walk_animation, false);
-            animator.SetBool(weapon.fl_sprint_animation, false);
-
+            initFx = false;
+  
         }
-
-        if (!player.isWalking && !player.isSprinting)
-        {
-
-
-
-            animator.SetBool(weapon.fl_walk_animation, false);
-            animator.SetBool(weapon.fl_sprint_animation, false);
-
-        }
-
-        if (player.isWalking && player.fps_Rigidbody.velocity != Vector3.zero)
-        {
-
-
-            animator.SetBool(weapon.fl_walk_animation, true);
-
-
-            animator.SetBool(weapon.fl_sprint_animation, false);
-
-        }
-
-        if (player.isSprinting && player.fps_Rigidbody.velocity != Vector3.zero)
-        {
-
-            animator.SetBool(weapon.fl_walk_animation, false);
-            animator.SetBool(weapon.fl_sprint_animation, true);
-
-
-        }
+        
 
     }
 
-    // Update is called once per frame
-    void Update()
+    public void ManageTheLight()
     {
-        batery_remain = Inventory.instance.AmountConsumableInInventory("Batery");
-
-
-        if (isInit && HUDWeapon.instance.isFlashlight)
+        if (switch_on)
         {
-            updateInputsFlashLight();
-
-            CheckMessage();
-            UpdateIcon();
-
-
-
-            if (isFlashlightOn && !GameManager.instance.CheckHUD)
+            if(HudFlashLight.instance.currentBatery > 0)
             {
+                
+                float val = (float)HudFlashLight.instance.currentBatery / (float)HudFlashLight.instance.maxBatery;
+                flashlight.color = lightColor.Evaluate(val);
+                flashlight.intensity = DefaultIntensity;
+                flashlight.enabled = true;
+                volumetricLight.intensityGlobal = volumetricLightDefaultIntensity;
+            }
 
-                if (weapon.batery > 0)
-                {
-                    weapon.batery -= weapon.batery_reduce_value * Time.deltaTime;
-                    if (weapon.batery <= 20f)
-                    {
+        }
+        else
+        {
+            flashlight.enabled = false;
+            volumetricLight.intensityGlobal = 0;
+            initFx = false;
+        }
 
-                        flashlight.intensity = Mathf.Lerp(flashlight.intensity, 0, Time.deltaTime * 0.25f);
-                        // LumiereTorche.gameObject.GetComponent<Animation>().Play("BatteryVide");
+        if(HudFlashLight.instance.currentBatery <= 0)
+        {
+            InputManager.instance.flInputs.FlashLightInputController.openclose.Disable();
+        }
+    }
 
-                    }
-                    if (weapon.batery <= 0 && batery_remain > 0)
-                    {
+    public IEnumerator playWithBeam()
+    {
+        
 
-                        isFlashlightOn = false;
-                        weapon.batery = 0;
-                        flashlight.enabled = false;
-                        HUDWeapon.instance.batery.SetActive(false);
-                        HUDWeapon.instance.icon.sprite = HUDWeapon.instance.batery_empty;
-                        isFlashlightOn = false;
-                        SwitchFlashLight(false);
-                    }
+        while (initFx)
+        {
+            yield return new WaitForSeconds(0.1f);
+            volumetricLight.intensityGlobal = Mathf.Lerp(volumetricLight.intensityGlobal, 0, Time.deltaTime / 2);
+            flashlight.intensity = Mathf.Lerp(flashlight.intensity, 0, Time.deltaTime * 2);
 
-                    if (weapon.batery <= 0 && batery_remain <= 0)
-                    {
-                        HUDWeapon.instance.ShowReload(false, "");
-                        HUDWeapon.instance.batery.SetActive(false);
-                        HUDWeapon.instance.icon.sprite = HUDWeapon.instance.batery_empty;
-                        flashlight.enabled = false;
-                        isFlashlightOn = false;
-                        SwitchFlashLight(false);
-                    }
-
-
-                    HUDWeapon.instance.Ui_Batery(weapon.batery, weapon.batery_max);
-                }
+            if(HudFlashLight.instance.currentBatery <= 0)
+            {
+                initFx = false;
+                volumetricLight.intensityGlobal = 0;
+                flashlight.intensity = 0;
             }
         }
+        
+        yield return null;
+    }
+
+
+
+    void Update()
+    {
+
+        if (switch_on)
+        {
+            timer += Time.deltaTime;
+            FlashLightFX();
+        }
+
+        if (isFlashlightEquiped)
+        {
+            if(HudFlashLight.instance.currentBatery <= 0)
+            {
+                HudFlashLight.instance.ShowInputReload();
+            }
+            else
+            {
+                HudFlashLight.instance.HideInputReload();
+            }
+        }
+
+        if (timer >= maxTimeToDecrease && switch_on)
+        {
+           HudFlashLight.instance.currentBatery -= bateryValueDecrease;
+            timer = 0;
+           float val = (float)HudFlashLight.instance.currentBatery / (float)HudFlashLight.instance.maxBatery;
+            flashlight.color = lightColor.Evaluate(val);
+            if (HudFlashLight.instance.currentBatery <= 0)
+            {
+                HudFlashLight.instance.currentBatery = 0;
+                SwitchFlashLight();
+            }
+        }
+        
     }
 }

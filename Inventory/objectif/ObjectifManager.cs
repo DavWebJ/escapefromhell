@@ -1,77 +1,123 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ObjectifManager : MonoBehaviour
 {
     public static ObjectifManager instance;
     private ObjectifItem[] objectifDatabase = null;
-    //public ObjectifItem objectif;
-
-
-
+    public List<ObjectifInDatabase> objectifItems = new List<ObjectifInDatabase>();
+    public GameObject pref_objectif_panel;
+    public Transform grid;
+    public GameObject objectif_empty;
     private void Awake()
     {
-        if(instance == null)
+        if (instance == null)
         {
             instance = this;
         }
     }
     void Start()
     {
+        grid = transform.Find("grid");
         LoadObjectif();
     }
     public void LoadObjectif()
     {
         objectifDatabase = Resources.LoadAll<ObjectifItem>("Inventory/Objectif");
 
-
-
-    }
-    public ObjectifItem GetObjectifById(int id)
-    {
-        if (objectifDatabase.Length <= 0)
-        {
-            return null;
-        }
-
         for (int i = 0; i < objectifDatabase.Length; i++)
         {
-            if (objectifDatabase[i].Id == id)
+            objectifItems.Add(new ObjectifInDatabase
             {
-                return Instantiate(objectifDatabase[i]);
-            }
+                itemData = objectifDatabase[i],
+                id = objectifDatabase[i].Id
+            });
         }
-        return null;
-    }
-
-    public void SetObjectif(int id)
-    {
 
     }
-    public void ValidateObjectif(int number)
+    public ObjectifInDatabase GetObjectifById(ObjectifItem obj)
     {
-        ObjectifItem currentObjectif = GetObjectifById(number);
-        if (currentObjectif.Id == number && !currentObjectif.objectifIsValidate)
+        ObjectifInDatabase objectif = objectifItems.Where(elem => elem.id == obj.Id).FirstOrDefault();
+        return objectif;
+    }
+
+    public void SetObjectif(ObjectifItem obj)
+    {
+        ObjectifInDatabase newobjectif = GetObjectifById(obj);
+        if(newobjectif != null)
         {
-
-            HUD.instance.SetVisualMessage("Vous avez remplie un objectif", Color.white, HUD.instance.prf_objectif_validate, HUD.instance.gridObjectif);
-            currentObjectif.objectifIsValidate = true;
-            return;
-
-
+           
+            showObjectif(newobjectif.itemData);
         }
-        else
-        {
-            return;
-        }
+        
     }
-
-    public void showtObjectif(ObjectifItem objectif)
+    public void ValidateObjectif(ObjectifItem obj)
     {
-        HUD.instance.SetVisualMessage(null, Color.white, HUD.instance.prf_objectif_message, HUD.instance.gridObjectif);
-        SetObjectif(objectif.Id);
+        ObjectifInDatabase objectif = GetObjectifById(obj);
+        
+            StartCoroutine(DestroyObjectif(objectif));
         
     }
 
+    public IEnumerator DestroyObjectif(ObjectifInDatabase obj)
+    {
+        AudioM.instance.PlayOneShotClip(AudioM.instance.objectif_audios, AudioM.instance.ValideObjectif);
+        yield return new WaitForSeconds(1);
+        for (int i = 0; i < grid.childCount; i++)
+        {
+            ObjectifVisual item = grid.GetChild(i).GetComponent<ObjectifVisual>();
+            if (item.currentObjectif == obj.id)
+            {
+                item.valide.enabled = true;
+                item.unValide.enabled = false;
+                Destroy(item.gameObject,2);
+            }
+        }
+
+        objectifItems.Remove(obj);
+        UpdateObjectifPanel();
+        yield break;
+
+    }
+
+    public void showObjectif(ObjectifItem _objectif)
+    {
+        if(_objectif != null)
+        {
+
+            ScreenEventsManager.instance.SetVisualMessage("Vous avez un nouvel objectif !", ScreenEventsManager.instance.prf_objectif_message, ScreenEventsManager.instance.gridObjectifMessage);
+
+            GameObject objectifPrefabs = Instantiate(pref_objectif_panel, grid);
+           ObjectifVisual obj =  objectifPrefabs.GetComponent<ObjectifVisual>();
+            obj.currentObjectif = _objectif.Id;
+            obj.valide.enabled = false;
+            obj.unValide.enabled = true;
+            obj.visualMessage.text = _objectif.objectif;
+        }
+
+        UpdateObjectifPanel();
+        
+        
+    }
+
+    public void UpdateObjectifPanel()
+    {
+        if (grid.childCount > 0)
+        {
+            objectif_empty.SetActive(false);
+        }
+        else
+        {
+            objectif_empty.SetActive(true);
+        }
+    }
+}
+
+[System.Serializable]
+public class ObjectifInDatabase
+{
+    public ObjectifItem itemData;
+    public int id;
 }

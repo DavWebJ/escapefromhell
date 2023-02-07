@@ -4,44 +4,85 @@ using UnityEngine.Audio;
 using UnityEngine;
 // using BlackPearl;
 
-
+public enum AudioBackGroundType
+{
+    Shop,
+    Outdoor,
+    Victory,
+    Chase,
+    Boss,
+    Town,
+    GrassLand,
+    GameOver
+}
 public class AudioM : MonoBehaviour
 {
     public static AudioM instance;
+    [Header("AudioSource References:")]
+    [SerializeField] public AudioSource BossAudioSource;
+    [SerializeField] public AudioSource GameOverAudioSource;
+    [SerializeField] public AudioSource PickupAudioSource;
+    [SerializeField] public AudioSource InventoryAudioSource;
+    [SerializeField] public AudioSource interractAudioSource;
+    [SerializeField] public AudioSource FxAudioSource;
+    [SerializeField] public AudioSource VoicesAudiosource;
+    [SerializeField] public AudioSource AudiosHUD;
+    [SerializeField] public AudioSource objectif_audios;
     [SerializeField] public AudioSource ambientIndoorAudioSource;
     [SerializeField] public AudioSource ambientOutdoorAudioSource;
-    [SerializeField] public AudioSource AudiosHUD;
-    [SerializeField] public AudioSource thunder_audios;
-    [SerializeField] public AudioSource objectif_audios;
-    [SerializeField] public AudioSource screamer_audios;
-    [SerializeField] public AudioSource tension_audio;
+    [SerializeField] public AudioSource GhostVoicesAudioSource;
 
+    public AudioSource[] listAudio;
+    [Header("Parameters:")]
+    public AudioBackGroundType audioBackGroundType;
     public float maxvol = 1;
     public float minvol = 0;
-    public float currentVolume;
-    [SerializeField] private float AudioFadeTime = 1.5f;
-    [Header("Ambient clip: ")]
-    public AudioClip ambientIndoorClip;
-    public AudioClip ambientOutdoorClip;
-    public AudioClip ambientBeforeScreamer;
-    [Header("UI clip:")]
-    public AudioClip hover_clip, openHudClip, selectItemClip;
+    [SerializeField] private float AudioFadeTime;
 
-    [Header("Thunder outdoor clip")]
-    public AudioClip[] thunderclip;
-    public bool isPlayingAmbientIndoor;
+    [Header("Ambient clip: ")]
+
+    public AudioClip gameOverClip;
+    public AudioClip bossClip;
+    public AudioClip ambientOutdoorClip, ambientIndoorClip;
+
+    public bool canPlayNewSound;
+    public bool canPlayGhostVoices = true;
+
+
+    public float timer;
+    public float TransitionTimeBetwwenVoices;
+    public float minTransitionTimeBetwwenVoices = 25;
+    public float maxTransitionTimeBetwwenVoices = 60;
+    public int index;
+
+
+    [Header("HUD clip:")]
+    public AudioClip hover_clip, openHudClip, selectItemClip,inventory_full_clip,noBackPack_equiped_clip;
+
+    
+    
 
     [Header("objectif clip:")]
     public AudioClip newObjectifClip, ValideObjectif;
-    [Header("light thunder support")]
-    public Light lighting;
 
-    public bool isAlreadyPlaying = false;
 
-    public float timer = 0;
-    public float thunderTransitionTime = 5;
-    public bool enableThunder = true;
-    public bool isIntro = false;
+    [Header("Interract Clip")]
+    public AudioClip pickUpClip,lockedDoor,unLockedDoor,openDoor,closeDoor,openDraw,closedraw;
+
+
+    [Header("FX Clip")]
+    public AudioClip swordClip;
+    public AudioClip equipeClip;
+    public AudioClip heal;
+
+    [Header("Voices Player")]
+    public AudioClip AttackVoices, SpellCastVoices, Pain,Die,Jump;
+    public AudioClip[] AttackVoicesPossibility;
+    public AudioClip[] GhostVoicesPossibility;
+
+
+    [Header("player Clip")]
+    public AudioClip drink, eat, pills, seringue,exhal,afraid;
 
 
     private void Awake() {
@@ -49,68 +90,279 @@ public class AudioM : MonoBehaviour
         {
             instance = this;
         }
-
-        lighting.enabled = false;
-
-
+    
     }
     private void Start() {
         
-        currentVolume = ambientIndoorAudioSource.volume;
+        ResetAllSound();
+        ResetVolume();
+        InitClipForAudioSource();
+        PlayDefaultAmbientBackground();
+
+    }
+
+
+    /// <summary>
+    /// Init all clip for audiosource static
+    /// </summary>
+    public void InitClipForAudioSource()
+    {
+
+        BossAudioSource.loop = true;
+
+
+        GameOverAudioSource.clip = gameOverClip;
+        BossAudioSource.clip = bossClip;
+
+        ambientIndoorAudioSource.clip = ambientIndoorClip;
+        ambientOutdoorAudioSource.clip = ambientOutdoorClip;
 
         ambientIndoorAudioSource.loop = true;
         ambientOutdoorAudioSource.loop = true;
-        ambientIndoorAudioSource.playOnAwake = false;
-        ambientOutdoorAudioSource.playOnAwake = true;
-        AudiosHUD.playOnAwake = false;
-        AudiosHUD.loop = false;
-        if (!isIntro)
-        {
-            PlayDefaultAmbientBackground();
-           
-        }
-        else
-        {
-            thunderTransitionTime = 17;
-        }
-            
-
 
     }
 
     public void StopAllSound(AudioSource source)
     {
-        enableThunder = false;
+       
         StartCoroutine(SmoothStopLevelVolume(source));
     }
-    public void PlayHUDHoverClip()
-    {
-        currentVolume =  ambientIndoorAudioSource.volume;
 
-        if (!AudiosHUD.isPlaying)
+    public IEnumerator SmoothStopLevelVolume(AudioSource source)
+    {
+        float timeToFade = 3f;
+        float timeElapsed = 0;
+       
+        if (source.isPlaying)
         {
-            AudiosHUD.PlayOneShot(hover_clip, 0.5f);
-            return;
+            while (timeElapsed < timeToFade)
+            {
+                source.volume = Mathf.Lerp(source.volume, 0, timeElapsed / timeToFade);
+                timeElapsed += Time.deltaTime;
+                yield return null;
+            }
+
+
+
+        }
+
+
+    }
+
+    /// <summary>
+    /// reset all volume to 1
+    /// </summary>
+    public void ResetVolume()
+    {
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            AudioSource source = transform.GetChild(i).GetComponent<AudioSource>();
+            source.volume = 1;
         }
     }
 
-    public void PlayOneShotClip(AudioSource source,AudioClip clip)
+    /// <summary>
+    /// stop all coroutine and stop all audiosource and reset boolean
+    /// </summary>
+    public void ResetAllSound()
     {
         
-        source.PlayOneShot(clip);
+        StopAllCoroutines();
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            AudioSource source = transform.GetChild(i).GetComponent<AudioSource>();
+            source.Stop();
+            source.volume = 1;
+            source.playOnAwake = false;
+            source.loop = false;
+
+        }
+
+
+ 
+    }
+
+    /// <summary>
+    /// play a one shot clip for dynamique sound
+    /// </summary>
+    /// <param name="source"></param>
+    /// <param name="clip"></param>
+    public void PlayOneShotClip(AudioSource source, AudioClip clip)
+    {
+        if(source.volume < 1)
+        {
+            source.volume = 1;
+        }
+        source.loop = false;
+        if (!source.isPlaying)
+        {
+            source.PlayOneShot(clip);
+        }
+        
+    }
+
+    public AudioSource GetCurrentAudioSource()
+    {
+        AudioSource currentAS = null;
+        for (int i = 0; i < listAudio.Length; i++)
+        {
+            if (listAudio[i].isPlaying)
+            {
+                currentAS = listAudio[i];
+            }
+            
+        }
+        return currentAS;
+        
+        
     }
 
 
+    /// <summary>
+    /// set the background type with a switch and play the good sound
+    /// can be edit and custom with over backgroundtype
+    /// </summary>
+    /// <param name="backGroundType"></param>
+    public void SetBackGroundAudioType(AudioBackGroundType backGroundType)
+    {
+       
+        switch (backGroundType)
+        {
+            case AudioBackGroundType.Shop:
+                audioBackGroundType = AudioBackGroundType.Shop;
+                //play shop
+                break;
+            case AudioBackGroundType.Outdoor:
+                audioBackGroundType = AudioBackGroundType.Outdoor;
+                PlayOutDoorSound();
+                break;
+            case AudioBackGroundType.Boss:
+                audioBackGroundType = AudioBackGroundType.Boss;
+                PlayBossSound();
+                break;
+            case AudioBackGroundType.GrassLand:
+                audioBackGroundType = AudioBackGroundType.GrassLand;
+                break;
+            case AudioBackGroundType.GameOver:
+                audioBackGroundType = AudioBackGroundType.GameOver;
+                ResetAllSound();
+                PlayGameOverSound();
+                break;
+            default:
+                break;
+        }
+        
+    }
+    public void PlayGameOverSound()
+    {
+        if (!GameOverAudioSource.isPlaying)
+        {
+            ResetAllSound();
+            PlayOneShotClip(GameOverAudioSource, gameOverClip);
+        }
+    }
+
+    public void PlayBossSound()
+    {
+        if (!BossAudioSource.isPlaying && canPlayNewSound)
+        {
+
+            StartCoroutine(PlayClipSmoothLevelVolume(BossAudioSource));
+        }
+    }
+
+
+    public void PlayLockedDoor()
+    {
+        if (!objectif_audios.isPlaying)
+        {
+            PlayOneShotClip(objectif_audios, lockedDoor);
+        }
+    }
+    public void PlayOpenDraw()
+    {
+        if (!objectif_audios.isPlaying)
+        {
+            PlayOneShotClip(objectif_audios, openDraw);
+        }
+    }
+    public void PlayCloseDraw()
+    {
+        if (!objectif_audios.isPlaying)
+        {
+            PlayOneShotClip(objectif_audios, closedraw);
+        }
+    }
+
+
+    public void PlaySwordAction()
+    {
+        FxAudioSource.loop = false;
+        if (!FxAudioSource.isPlaying)
+        {
+            if(FxAudioSource.volume < 1f)
+            {
+                FxAudioSource.volume = 1;
+            }
+            
+            PlayOneShotClip(FxAudioSource,swordClip);
+        }
+
+    }
+    public void PlayHUDHoverClip()
+    {
+
+        
+        if (!AudiosHUD.isPlaying)
+        {
+            PlayOneShotClip(AudiosHUD, hover_clip);
+            
+        }
+    }
+
+
+    public void PlayOutDoorSound()
+    {
+
+        //if (!OutdoorAudioSource.isPlaying && canPlayNewSound)
+        //{
+        //    StartCoroutine(PlayClipSmoothLevelVolume(OutdoorAudioSource));
+        //}
+        
+
+    }
+
+    public void PlayNoBackPack()
+    {
+        AudiosHUD.loop = false;
+        AudiosHUD.clip = noBackPack_equiped_clip;
+        AudiosHUD.Play();
+    }
+
+    public void InventoryFull()
+    {
+        AudiosHUD.loop = false;
+        AudiosHUD.clip = inventory_full_clip;
+        AudiosHUD.Play();
+    }
+
+    public void PlayNewObjectif()
+    {
+        AudiosHUD.loop = false;
+        AudiosHUD.clip = newObjectifClip;
+        AudiosHUD.Play();
+    }
 
     public void PlayAmbientBackground(AudioClip clip)
     {
 
         StopAllCoroutines();
-        StartCoroutine(SmoothLevelVolume(clip));
+
+        ambientIndoorAudioSource.Play();
 
 
 
-        isPlayingAmbientIndoor = !isPlayingAmbientIndoor;
+
     }
 
     public void PlayDefaultAmbientBackground()
@@ -118,141 +370,103 @@ public class AudioM : MonoBehaviour
         PlayAmbientBackground(ambientOutdoorClip);
     }
 
-    public void PlayScreamerAmbience()
+    public void Playjump()
     {
-        StopAllCoroutines();
-        StartCoroutine(SmoothLevelVolume(ambientBeforeScreamer));
-
-
-
-        isPlayingAmbientIndoor = !isPlayingAmbientIndoor;
+        PlayOneShotClip(FxAudioSource, Jump);
     }
 
-    public IEnumerator SmoothLevelVolume(AudioClip clip)
+
+    public void PlayOutDoorBackGround()
     {
-        float timeToFade = 5f;
-        float timeElapsed = 0;
-        currentVolume = ambientIndoorAudioSource.volume;
-        if (isPlayingAmbientIndoor)
-        {
-            ambientOutdoorAudioSource.clip = clip;
-            ambientOutdoorAudioSource.Play();
-            while (timeElapsed < timeToFade)
-            {
-                ambientOutdoorAudioSource.volume = Mathf.Lerp(minvol, maxvol, timeElapsed / timeToFade);
-                ambientIndoorAudioSource.volume = Mathf.Lerp(maxvol, minvol, timeElapsed / timeToFade);
-                timeElapsed += Time.deltaTime;
-                yield return null;
-            }
-            ambientIndoorAudioSource.Stop();
+        //if (!OutdoorAudioSource.isPlaying && canPlayNewSound)
+        //{
 
-
-        }
-        else
-        {
-
-            ambientIndoorAudioSource.clip = clip;
-            ambientIndoorAudioSource.Play();
-            while (timeElapsed < timeToFade)
-            {
-                ambientIndoorAudioSource.volume = Mathf.Lerp(minvol, maxvol, timeElapsed / timeToFade);
-                ambientOutdoorAudioSource.volume = Mathf.Lerp(maxvol, minvol, timeElapsed / timeToFade);
-                timeElapsed += Time.deltaTime;
-                yield return null;
-            }
-            ambientOutdoorAudioSource.Stop();
-
-        }
-
+        //    StartCoroutine(PlayClipSmoothLevelVolume(OutdoorAudioSource));
+        //}
     }
 
-    public IEnumerator SmoothStopLevelVolume(AudioSource source)
+    public void PlayPickUp()
+    {
+        if(!AudiosHUD.isPlaying)
+            PlayOneShotClip(AudiosHUD, pickUpClip);
+    }
+
+    public void PlayEquiped()
+    {
+        if (!AudiosHUD.isPlaying)
+        {
+            PlayOneShotClip(AudiosHUD, equipeClip);
+        }
+    }
+
+
+
+
+
+    
+
+    public IEnumerator PlayClipSmoothLevelVolume(AudioSource newAudioSource)
     {
         float timeToFade = 3f;
         float timeElapsed = 0;
-        currentVolume = source.volume;
-        if (source.isPlaying)
+        AudioSource currentAudioSource = GetCurrentAudioSource();
+    
+        newAudioSource.volume = 0;
+
+        if (currentAudioSource != null)
         {
-            while (timeElapsed < timeToFade)
+           
+            if (canPlayNewSound)
             {
-                source.volume = Mathf.Lerp(currentVolume, 0, timeElapsed / timeToFade);
-                timeElapsed += Time.deltaTime;
-                yield return null;
+                
+                canPlayNewSound = false;
+                newAudioSource.Play();
+                while (timeElapsed < timeToFade)
+                {
+
+                    newAudioSource.volume = Mathf.Lerp(minvol, maxvol, timeElapsed / timeToFade);
+                    currentAudioSource.volume = Mathf.Lerp(maxvol, minvol, timeElapsed / timeToFade);
+                    timeElapsed += Time.deltaTime;
+                    yield return null;
+                }
             }
-            
+           
+            currentAudioSource.Stop();
+            canPlayNewSound = true;
 
-
-        }
         
+            
+        }
+
+   
 
     }
 
+    public IEnumerator PlayGhostVoice()
+    {
+        canPlayGhostVoices = false;
+        TransitionTimeBetwwenVoices = Random.Range(minTransitionTimeBetwwenVoices, maxTransitionTimeBetwwenVoices);
+        index = Random.Range(0, GhostVoicesPossibility.Length);
+        PlayOneShotClip(GhostVoicesAudioSource, GhostVoicesPossibility[index]);
+        
+        index = 0;
+        canPlayGhostVoices = true;
+        yield break;
+    }
 
-    private void Update() {
 
+    private void Update()
+    {
         timer += Time.deltaTime;
-        if (timer >= thunderTransitionTime && enableThunder)
+
+        if(timer >= TransitionTimeBetwwenVoices && canPlayGhostVoices)
         {
-            StopCoroutine(LightingThunderSupport());
-            thunder_audios.clip = thunderclip[Random.Range(0, thunderclip.Length)];
-            StartCoroutine(LightingThunderSupport());
-            thunder_audios.PlayOneShot(thunder_audios.clip);
+         
+                StartCoroutine(PlayGhostVoice());
             timer = 0.0f;
         }
     }
 
-    public IEnumerator LightingThunderSupport()
-    {
-        if (thunder_audios.isPlaying)
-        {
-            thunder_audios.Stop();
-        }
-        lighting.enabled = true;
-        yield return new WaitForSeconds(0.1f);
-        lighting.enabled = false;
-        yield return new WaitForSeconds(0.2f);
-        lighting.enabled = true;
-        yield return new WaitForSeconds(0.1f);
-        lighting.enabled = false;
-        yield return new WaitForSeconds(0.2f);
-        lighting.enabled = true;
-        yield return new WaitForSeconds(0.1f);
-        lighting.enabled = false;
-        yield break;
-    }
 
-    public IEnumerator LightingThunderIntro()
-    {
-        if (thunder_audios.isPlaying)
-        {
-            thunder_audios.Stop();
-        }
-        lighting.enabled = true;
-        yield return new WaitForSeconds(0.1f);
-        lighting.enabled = false;
-        yield return new WaitForSeconds(0.2f);
-        lighting.enabled = true;
-        yield return new WaitForSeconds(0.2f);
-        lighting.enabled = false;
-        yield return new WaitForSeconds(0.1f);
-        lighting.enabled = true;
-        yield return new WaitForSeconds(0.2f);
-        lighting.enabled = false;
-        yield return new WaitForSeconds(0.2f);
-        lighting.enabled = true;
-        yield return new WaitForSeconds(0.1f);
-        lighting.enabled = false;
-        yield return new WaitForSeconds(0.1f);
-        lighting.enabled = true;     
-        yield break;
-    }
-
-
-    public void PlayThunder()
-    {
-        //thunder_audios.clip = thunderclip[Random.Range(0, thunderclip.Length)];
-        StartCoroutine(LightingThunderIntro());
-        //thunder_audios.PlayOneShot(thunder_audios.clip);
-    }
 
 }

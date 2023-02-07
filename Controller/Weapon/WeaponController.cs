@@ -1,23 +1,25 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using SUPERCharacter;
 using UnityEngine.InputSystem;
 using BlackPearl;
 [RequireComponent(typeof(AudioSource))]
 
 public class WeaponController : MonoBehaviour
 {
-    public static WeaponController instance;
-    [Header("References")]
-    public GunInput inputActions;
-    public WeaponItem weapon = null;
+
+
     [SerializeField] private AudioSource audios = null;
-    private Animator animator = null;
-    public string weaponItemName;
-    
 
+    public AudioClip gun_reload_clip, empty_clip, fire_clip;
 
+    public Transform spawn;
 
+    public ArmsController arm;
+
+    public GunInput gunInput;
+    GunInput.GunInputControllerActions gunActions;
 
     [Header("Properties weapon")]
     
@@ -30,8 +32,9 @@ public class WeaponController : MonoBehaviour
     public bool isAiming = false;
     public bool canreload;
     public bool isReloading = false;
-    private FirstPersonAIO player;
-    public bool canFire => !isReloading && !GameManager.instance.CheckHUD && player.IsGrounded && !player.isSprinting;
+    public bool isGunEquiped = false;
+    public SUPERCharacterAIO player;
+    public bool canFire;
     public float fovOrigin;
     public float fov_zooming = 15;
 
@@ -45,49 +48,43 @@ public class WeaponController : MonoBehaviour
     public int AmmoRemain = 0;
     public bool isInit = false;
 
+    public bool isFiring = false;
+    public Vector3 aimingPos;
 
+
+    public float cooldown = 0.3f;
 
 
     private void Awake()
     {
 
-        if(instance == null)
-        {
-            instance = this;
-        }
-        inputActions = new GunInput();
-       HUDWeapon.instance.GetWeaponInfos(null);
+        gunInput = new GunInput();
+        gunActions = gunInput.GunInputController;
+
+        //HUDWeapon.instance.GetWeaponInfos(null);
         
-
-        
-            inputActions.GunInputController.FireGun.performed += ctx => Fire(isAiming);
-            inputActions.GunInputController.FireGun.canceled += ctx => Null();
-            inputActions.GunInputController.ReloadGun.performed += ctx => CheckForReloading();
-            inputActions.GunInputController.Aim.performed += ctx => isAiming = true;
-            inputActions.GunInputController.Aim.canceled += ctx => isAiming = false;
-        
-
-    }
-    private void Start()
-    {
-
-
-      
     }
 
     private void OnEnable()
     {
-        inputActions.GunInputController.Enable();
-        
+        gunActions.Enable();
     }
-
     private void OnDisable()
     {
-        HUDWeapon.instance.GetWeaponInfos(null);
-        inputActions.GunInputController.Disable();
-
+        gunActions.Disable();
     }
-
+    private void Start()
+    {
+        arm = GetComponent<ArmsController>();
+        player = arm.player;
+        InitaliseGunController();
+        gunActions.FireGun.performed += ctx => Fire();
+        gunActions.FireGun.canceled += ctx => Null();
+        gunActions.ReloadGun.performed += ctx => CheckForReloading();
+        gunActions.Aim.performed += ctx => isAiming = !arm.isSprinting;
+        gunActions.Aim.canceled += ctx => isAiming = false;
+        canFire = !isReloading && !arm.isSprinting;
+    }
 
 
 
@@ -96,168 +93,90 @@ public class WeaponController : MonoBehaviour
 
       
         audios = GetComponent<AudioSource>();
-        animator = GetComponent<Animator>();
+
         audios.playOnAwake = false;
         audios.loop = false;
-
-        player = FindObjectOfType<FirstPersonAIO>();
-
-        audios.PlayOneShot(weapon.gun_equiped_sound);
       
         fovOrigin = player.fpscam.GetComponent<Camera>().fieldOfView;
         prefab_bullet = Resources.Load<GameObject>("Weapon/FX/Bullet");
-    
-        muzzle_particle = transform.Find(weapon.pathToMuzzleFx).GetComponentInChildren<ParticleSystem>();
-       
-        cartridge_particle = transform.Find(weapon.pathToCartridgeFx).GetComponentInChildren<ParticleSystem>();
-      
-        muzzle = transform.Find(weapon.pathToMuzzleTransform);
-       
         parentsModels = transform.Find("parentmodel");
+        muzzle_particle = parentsModels.transform.Find("Hp_Base/muzzle").GetComponentInChildren<ParticleSystem>();
+       
+        cartridge_particle = parentsModels.transform.Find("Hp_Base/cartridge").GetComponentInChildren<ParticleSystem>();
       
-        parentsModelOrigin = new Vector3(0, 0, 0);
-   
-        HUDWeapon.instance.isFlashlight = false;
-        HUDWeapon.instance.ShowReload(false, "");
+        muzzle = parentsModels.transform.Find("Hp_Base/muzzle").transform;
 
+        spawn = parentsModels.transform.Find("Hp_Base/Bn_Trigger/spawn").transform;
+        
+      
+        parentsModelOrigin = new Vector3(0, -1.7f, 0);
+        aimingPos = new Vector3(0, -1.7f, 0);
 
-
-        HUDWeapon.instance.GetWeaponInfos(weapon);
+        HUD.instance.ChangeCrossHair(HUD.crosshair_type.gun);
+        
         isInit = true;
        
     }
 
-    public void SetItem(Item item)
+
+    public void Gun9mmEquiped()
     {
+        isGunEquiped = !isGunEquiped;
 
-            if (item.itemType != ItemType.Weapon)
-                return;
-            weapon = item as WeaponItem;
-        
-        
-        
-        InitaliseGunController();
+        if (!isGunEquiped)
+        {
+            HUDWeapon.instance.gunEquiped = false;
+            HUDWeapon.instance.HideHudAmmo();
+            HUDWeapon.instance.HideReloadInput();
 
+        }
+        else
+        {
+            HUDWeapon.instance.gunEquiped = true;
+            HUDWeapon.instance.ShowHudAmmo();
+            HUDWeapon.instance.ShowReloadInput();
+        }
     }
-
-
     public void Null()
     {
+        isFiring = false;
+        arm.anim.SetBool("isFire", isFiring);
         return;
     }
 
     public void updateGunInputs()
     {
         
-        HUD.instance.ChangeCrossHair(HUD.crosshair_type.gun);
-        AmmoRemain = Inventory.instance.AmountConsumableInInventory("AmmoGun");
-        
-        if (AmmoRemain <= 0 && weapon.ammo <= 0)
-        {
-            AmmoRemain = 0;
-            
-            HUDWeapon.instance.ShowReload(true,"Trouver des munitions");
-        }
+        if(arm.isSprinting) {
+            arm.anim.SetBool("isAiming", false);
+             return; }
 
-        if(weapon.ammo <= 0 && AmmoRemain > 0)
-        {
-            HUDWeapon.instance.ShowReload(true,"Appuyer sur R pour recharger");
-        }
+        HUD.instance.ChangeCrossHair(HUD.crosshair_type.gun);
+
 
         Vector3 originPos = player.fpscam.armsHolder.localPosition;
         
-        HUDWeapon.instance.GetWeaponInfos(weapon);
-        Zooming(isAiming);
+    
+        Zooming(isAiming && !arm.isSprinting);
 
-        if(isAiming && weapon.weaponType == WeaponType.scoped)
-        {
-            // player.zoomFOV = 20f;
-            //StartCoroutine(onScoped());
-           
-        }else
-        {
-            // player.zoomFOV = 30f;
-            //StartCoroutine(onUncoped());
-            
-        }
-        if(player.IsGrounded && isAiming)
-        {
-            animator.SetBool(weapon.aim_animation,isAiming);
-            
-            player.fpscam.armsHolder.localPosition = Vector3.Lerp(player.fpscam.armsHolder.localPosition,weapon.aimingPos,Time.deltaTime * 8);
-        }else
-        {
-            player.fpscam.armsHolder.localPosition = Vector3.Lerp(player.fpscam.armsHolder.localPosition,Vector3.zero,Time.deltaTime * 8);
-            animator.SetBool(weapon.aim_animation,false);
-        }
+        //arm.anim.SetBool("isAiming",isAiming);
+
+
+
+            arm.anim.SetBool("isAiming", isAiming);
         
-        if(!player.IsGrounded)
-        {
-            if(weapon.walk_aim_animation != string.Empty)
+
+
+            if (isAiming)
             {
-                animator.SetBool(weapon.walk_aim_animation,false);
+                player.fpscam.armsHolder.localPosition = Vector3.Lerp(player.fpscam.armsHolder.localPosition, aimingPos, Time.deltaTime * 8);
             }
-            
-
-            animator.SetBool(weapon.aim_animation,false);
-            animator.SetBool(weapon.walk_animation,false);
-            animator.SetBool(weapon.sprint_animation,false);
-
-        }
-
-        if(!player.isWalking && !player.isSprinting)
-        {
-    
-            if(weapon.walk_aim_animation != string.Empty)
+            else
             {
-                animator.SetBool(weapon.walk_aim_animation,false);
-            }
-            // animator.SetBool(weapon.aim_animation,isAiming);
-            animator.SetBool(weapon.walk_animation,false);
-            animator.SetBool(weapon.sprint_animation,false);
-            
-        }
+                player.fpscam.armsHolder.localPosition = Vector3.Lerp(player.fpscam.armsHolder.localPosition, parentsModelOrigin, Time.deltaTime * 8);
+                arm.anim.SetBool("isAiming", isAiming);
 
-        if(player.isWalking && player.fps_Rigidbody.velocity != Vector3.zero && !isAiming)
-        {
-    
-
-            if(weapon.walk_aim_animation != string.Empty)
-            {
-                animator.SetBool(weapon.walk_aim_animation,false);
             }
-            animator.SetBool(weapon.walk_animation,true);
-            animator.SetBool(weapon.aim_animation,false);
-           
-           animator.SetBool(weapon.sprint_animation,false);
-            
-        }
-        if(player.isWalking && player.fps_Rigidbody.velocity != Vector3.zero && isAiming)
-        {
-            if(weapon.walk_aim_animation != string.Empty)
-            {
-                animator.SetBool(weapon.walk_aim_animation,true);
-            }
-    
-            animator.SetBool(weapon.walk_animation,false);
-            // animator.SetBool(weapon.aim_animation,true);
-           
-           animator.SetBool(weapon.sprint_animation,false);
-        }
-        if(player.isSprinting && player.fps_Rigidbody.velocity != Vector3.zero)
-        {
-            if(weapon.walk_aim_animation != string.Empty)
-            {
-                animator.SetBool(weapon.walk_aim_animation,false);
-            }
-            animator.SetBool(weapon.walk_animation,false);
-            animator.SetBool(weapon.sprint_animation,true);
-            animator.SetBool(weapon.aim_animation,false);
-       
-        }
- 
-
-
 
         
 
@@ -265,81 +184,87 @@ public class WeaponController : MonoBehaviour
 
     }
 
+
+
     public void CheckForReloading()
     {
-        if (!Inventory.instance.isInventoryOpen && !player.fpscam.isInterracting)
+        if(player.fpscam.currentItem != null) { return; }
+
+        if (!Inventory.instance.isInventoryOpen)
         {
-            if (weapon.ammo < weapon.max_ammo)
+            if (HUDWeapon.instance.currentAmmo < HUDWeapon.instance.maxAmmo)
             {
-                if (AmmoRemain > 0)
+                if (HUDWeapon.instance.CheckRemainingAmmoGunInInventory() > 0)
                 {
-                    //HUDWeapon.instance.ShowReload(true,"Appuyer sur R pour recharger");
-                    InputManager.instance.inputs.UI.Disable();
+
                     StartCoroutine(ReloadingGun());
                     
                 }
                 else
                 {
-                    HUDWeapon.instance.ShowReload(false, "");
-                    return;
+                    ScreenEventsManager.instance.SetVisualMessage("Plus de munition dans votre inventaire", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+                    
 
                 }
             }
         }
     }
 
-    private void Fire(bool Aiming)
+    private void Fire()
     {
+        
         if (!Inventory.instance.isInventoryOpen)
         {
-            // FIRE
-            if (weapon.firemode == Firemode.auto)
-            {
-                weapon.cooldown = weapon.cooldown_auto;
-            }
-            else
-            {
-                weapon.cooldown = weapon.cooldown_semi;
-            }
-            
+
             if (Time.time > timer && canFire)
             {
-                if (weapon.ammo <= 0)
+                isFiring = true;
+                if (HUDWeapon.instance.currentAmmo <= 0)
                 {
-
-                    if (Aiming)
+                    
+                    if (isAiming)
                     {
-                        animator.Play(weapon.shot_aim_animation);
-                        audios.PlayOneShot(weapon.empty_clip);
+                 
+                        arm.anim.SetBool("isFire",isFiring);
+                        arm.anim.SetBool("isAiming", true);
+                        audios.PlayOneShot(empty_clip);
                     }
                     else
                     {
-                        animator.Play(weapon.shot_animation);
-                        audios.PlayOneShot(weapon.empty_clip);
+                 
+                        arm.anim.SetBool("isFire",isFiring);
+                        arm.anim.SetBool("isAiming",false);
+                        audios.PlayOneShot(empty_clip);
                     }
                 }
                 else
                 {
-                    //FX
-                    weapon.ammo--;
+
+                    HUDWeapon.instance.currentAmmo--;
 
                     muzzle_particle.Play();
                     cartridge_particle.Play();
-                    audios.PlayOneShot(weapon.fire_clip);
+                    audios.PlayOneShot(fire_clip);
 
-                    if (Aiming)
+                    if (isAiming)
                     {
-                        animator.Play(weapon.shot_aim_animation);
+                        arm.anim.SetBool("isFire", isFiring);
+                        arm.anim.SetBool("isAiming", true);
                     }
                     else
                     {
-                        animator.Play(weapon.shot_animation);
+                        arm.anim.SetBool("isFire", isFiring);
+                        arm.anim.SetBool("isAiming", false);
+
                     }
-                    HUDWeapon.instance.GetWeaponInfos(weapon);
-                    Instantiate(prefab_bullet, muzzle.position, muzzle.rotation);
-                    player.CamRecoil(weapon.recoil_force);
+             
+                    Instantiate(prefab_bullet, spawn.position, spawn.rotation);
+                    RecoilWeapon recoilFx = GetComponent<RecoilWeapon>();
+                    recoilFx.Recoil();
                 }
-                timer = Time.time + weapon.cooldown;
+                //Null();
+                timer = Time.time + cooldown;
+               
 
             }
         }
@@ -349,43 +274,42 @@ public class WeaponController : MonoBehaviour
     {
         
         isReloading = true;
+        InputManager.instance.DisableAllActions();
+       
+
+        audios.PlayOneShot(gun_reload_clip);
         
-        if(!audios.isPlaying)
-        {
-            audios.PlayOneShot(weapon.gun_reload_clip);
-        }
-        animator.Play(weapon.reload_animation);
-        yield return new WaitForSeconds(weapon.gun_reload_clip.length);
+        arm.anim.Play("Recharge");
+        yield return new WaitForSeconds(arm.anim.GetCurrentAnimatorClipInfo(0).Length);
         
 
 
-        int ammoToReload = weapon.max_ammo - weapon.ammo;
-        
-        if(ammoToReload >= AmmoRemain)
+        int ammoToReload = HUDWeapon.instance.maxAmmo - HUDWeapon.instance.currentAmmo;
+        AmmoRemain = HUDWeapon.instance.CheckRemainingAmmoGunInInventory();
+        if (ammoToReload >= AmmoRemain)
         {
             ammoToReload = AmmoRemain;
-            weapon.ammo = ammoToReload + weapon.ammo;
+            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByname("ammo_gun"), ammoToReload);
             
-            Inventory.instance.UpdateConsumableInInventory("AmmoGun",ammoToReload);
-            
-            HUDWeapon.instance.GetWeaponInfos(weapon);
+            HUDWeapon.instance.currentAmmo = ammoToReload + HUDWeapon.instance.currentAmmo;
+
             
         }else
         {
-         
-            weapon.ammo += ammoToReload;
-            Inventory.instance.UpdateConsumableInInventory("AmmoGun",ammoToReload);
-
+            Inventory.instance.DestroyItemFromInventoryWithAmount(Inventory.instance.getItemByname("ammo_gun"), ammoToReload);
+            HUDWeapon.instance.currentAmmo += ammoToReload;
+          
           
             
-            HUDWeapon.instance.GetWeaponInfos(weapon);
+   
         
             
         }
-        HUDWeapon.instance.ShowReload(false,"");
+        
         isReloading = false;
-        InputManager.instance.inputs.UI.Enable();
-
+        InputManager.instance.EnableInputGun();
+        // InputManager.instance.inputs.UI.Enable();
+        yield break;
 
     }
 
@@ -394,7 +318,7 @@ public class WeaponController : MonoBehaviour
     {
         
         yield return new WaitForSeconds(0.35f);
-        HUD.instance.setScopedImage(true);
+       // HUD.instance.setScopedImage(true);
     //    player.fpscam.weapon_cam.SetActive(false);
     }
 
@@ -402,7 +326,7 @@ public class WeaponController : MonoBehaviour
     {
         // player.fpscam.weapon_cam.SetActive(true);
         yield return null;
-        HUD.instance.setScopedImage(false);
+       // HUD.instance.setScopedImage(false);
         
     }
 
@@ -419,12 +343,9 @@ public class WeaponController : MonoBehaviour
         }
     }
 
-    #region FlashLight
-    
-    #endregion
     void Update()
     {
-        if (isInit)
+        if (isInit && isGunEquiped)
         {
             updateGunInputs();
             muzzle.LookAt(player.fpscam.targetLook);

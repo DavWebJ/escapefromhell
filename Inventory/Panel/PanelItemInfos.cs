@@ -38,7 +38,7 @@ namespace BlackPearl
             }
             lastSlot = slot;
             slotItem.slotType = slot.slotType;
-            slotItem.ChangeItem(slot.currentItem);
+            
             itemDesctext.text = slot.currentItem.ItemDescription;
             itemNametext.text = slot.currentItem.ItemName;
             // itemIcon.sprite = slot.currentItem.ItemIcon;
@@ -48,7 +48,7 @@ namespace BlackPearl
         public void HideItemInfos()
         {
             if(gameObject.activeInHierarchy){
-                slotItem.ChangeItem(null);
+                //slotItem.ChangeItem(null);
                 itemDesctext.text = "";
                 itemNametext.text = "";
                 // itemIcon.sprite = null;

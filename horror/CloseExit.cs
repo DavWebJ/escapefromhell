@@ -20,26 +20,9 @@ public class CloseExit : MonoBehaviour
         {
             
             AudioSource.PlayOneShot(close);
-            StartCoroutine(CloseDoor());
+     
         }
     }
 
-    public IEnumerator CloseDoor()
-    {
-        
-        door.GetComponent<Animator>().enabled = true;
-        yield return new WaitForSeconds(close.length);
-        switch (doortype)
-        {
-            case "exit":
-                AudioM.instance.screamer_audios.PlayOneShot(tension);
-                break;
-            default:
-                AudioM.instance.screamer_audios.PlayOneShot(stringer);
-                break;
-        }
-        
-        
-        Destroy(gameObject);
-    }
+    
 }

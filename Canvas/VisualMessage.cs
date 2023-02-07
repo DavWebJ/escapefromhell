@@ -6,49 +6,48 @@ using BlackPearl;
 public class VisualMessage : MonoBehaviour
 {
 
-    private Text item_name = null;
-    private Text qty = null;
+
     private Text visualMessage = null;
     public Image icon = null;
 
     private void Awake() {
         
-       item_name = transform.Find("name").GetComponent<Text>();
-       qty = transform.Find("qty").GetComponent<Text>();
+  
+       
        visualMessage = transform.Find("message").GetComponent<Text>();
     
         icon = transform.Find("icon").GetComponent<Image>();
         
 
-        item_name.text = string.Empty;
-        qty.text = "";
+    
         visualMessage.text = "";
     }
 
     private void Start() {
-        Destroy(gameObject,7f);
+        Destroy(gameObject, 7f);
     }
 
-    public void SendVisualMessage(bool add, Item item)
+    public void SendVisualMessage(bool add, Item item,int amount)
     {
         if(item == null)
         {
             Destroy(gameObject);
         }else
         {
-            visualMessage.text = (add) ? "+" : "-";
+            visualMessage.text = "+ " + amount.ToString() +" "+ item.ItemName;
             visualMessage.color = (add) ? Color.green  : Color.red;
-            qty.text = item.amount.ToString();
-            qty.color = (add) ? Color.green  : Color.red;
             icon.sprite = item.ItemIcon;
             icon.preserveAspect = true;
-            item_name.text = item.ItemName;
+     
+                
 
 
 
         }
         
     }
+
+
 
     public void SendVisualMessage(string message,Color color)
     {
@@ -57,13 +56,54 @@ public class VisualMessage : MonoBehaviour
             Destroy(gameObject);
         }else
         {
-            qty.text = string.Empty;
-            item_name.text = string.Empty;
-            icon.gameObject.SetActive(false);
-            icon.sprite = null;
+
+  
+            //icon.gameObject.SetActive(false);
+            //icon.sprite = null;
             visualMessage.text = message;
             visualMessage.color = color;
+   
+                
+        }
+    }
 
+    public void SendVisualMessage(string message)
+    {
+        if (message == string.Empty)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+
+
+            icon.gameObject.SetActive(true);
+            visualMessage.text = message;
+
+         
+        }
+    }
+
+    public void SendInventoryVisualMessage(string message, Color color)
+    {
+
+        if (message == string.Empty)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Animation anim;
+            anim = GetComponent<Animation>();
+            visualMessage.text = message;
+            visualMessage.color = color;
+            icon.gameObject.SetActive(true);
+            if(anim != null)
+            {
+                anim.Play();
+            }
+        
+             
         }
     }
 
@@ -75,8 +115,8 @@ public class VisualMessage : MonoBehaviour
         }
         else
         {
-            qty.text = string.Empty;
-            item_name.text = string.Empty;
+
+       
             icon.gameObject.SetActive(false);
             icon.sprite = null;
             icon.enabled = false;

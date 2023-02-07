@@ -32,10 +32,8 @@ public class AlienController : MonoBehaviour
     public void PlayScreamSound()
     {
         AudioSource.PlayOneShot(scream);
-        StartCoroutine(Inventory.instance.player.CameraShake(0.5f, 0.5f));
+       // StartCoroutine(Inventory.instance.player.CameraShake(0.5f, 0.5f));
 
-        Inventory.instance.player.playerCanMove = true;
-        Inventory.instance.player.enableCameraMovement = true;
         anim.SetBool("scream", false);
         
         HUD.instance.ScreenEffect("defrost");

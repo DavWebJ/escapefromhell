@@ -32,7 +32,7 @@ namespace BlackPearl
             img_icn.type = Image.Type.Simple;
             img_icn.preserveAspect = true;
             img_icn.color = Color.white;
-            text_amnt.text = (item.amount > 1) ? "X " + item.amount : string.Empty;
+            text_amnt.text = string.Empty;
         }
 
     }

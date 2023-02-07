@@ -9,7 +9,7 @@ public class PlaySound : MonoBehaviour
         if (other.CompareTag("Player"))
         {
            
-            AudioM.instance.PlayScreamerAmbience();
+           
             Destroy(gameObject, 1);
         }
     }

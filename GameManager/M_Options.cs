@@ -304,7 +304,7 @@ public class M_Options : MonoBehaviour
 
     private void Update()
     {
-        if(!isInit && MainMenuManager.instance.isInGame)
+        if(!isInit)
         {
             Init();
         }

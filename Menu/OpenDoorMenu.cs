@@ -19,8 +19,9 @@ public class OpenDoorMenu : MonoBehaviour
         audioS.PlayOneShot(open);
     }
     
-    void Update()
+    public void DisableAnimator()
     {
-        
+        animator.enabled = false;
     }
+
 }

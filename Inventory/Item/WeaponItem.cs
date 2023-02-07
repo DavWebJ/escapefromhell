@@ -64,7 +64,7 @@ namespace BlackPearl
 
         public WeaponItem()
         {
-            this.itemType = ItemType.Weapon;
+            //this.itemType = ItemType.Weapon;
         }
     
     }

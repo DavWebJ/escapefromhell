@@ -8,44 +8,29 @@ namespace BlackPearl
     public class Item : ScriptableObject
     {
         public string ItemName = "";
+        [TextArea(10,15)]
         public string ItemDescription = "";
         public Sprite ItemIcon = null;
+        public CategoryObjectType categoryObjectType = CategoryObjectType.Interractable;
+        public Category itemCategory = Category.None;
         public ItemType itemType = ItemType.None;
-        public ItemRarityEnum ItemRarity = ItemRarityEnum.Common;
-        public ObjectType objectType = ObjectType.None;
-        public Firemode firemode = Firemode.semi;
-        public WeaponType weaponType = WeaponType.none;
-        public bool useWithAnimation = false;
-        
-        public int amount;
-        public int maxAmount = 1;
+        public float damage = 0;
+        public int maxStack = 1;
         public bool stackable = false;
         public bool isPerimable = false;
-        public GameObject[]  fx;
-        public AudioClip heal_clip;
-        public AudioClip equiped_clip;
-        public AudioClip exhal_clip;
-        
-        public int rarityItem = 0; 
+        public bool isInspectable;
+        public bool canUse;
+        public bool canEquiped;
+        public int backpackSize;
+        public float timeToDestroy;
+        public int maxBatery = 100;
         public GameObject ItemGroundPrefabs = null;
-        public GameObject WeaponArmPrefab = null;
-
-        [Header("Animation")]
-        public string animationWalk;
-        public string animationRun;
-        public string firstAttack;
-        public string secondAttack;
-        public string reloadAnimation;
-        public string getAnimation;
-        public string hideAnimation;
-
+        public GameObject ArmPrefab = null;
         [Header("Attributes")]
         public Attributes attributes = new Attributes();
-        public Actions actions = new Actions();
 
         [Header("Crafting")]
         public Crafting crafting = new Crafting();
-        public Buildable buildable = new Buildable();
 
 
     }
@@ -70,89 +55,25 @@ namespace BlackPearl
 
     }
 
-    [System.Serializable]
-    public class Buildable
-    {
-        public string BuilditemName = string.Empty;
-        public GameObject BuildItemPrefabs = null;
 
-        
-
-    }
 
     [System.Serializable]
     public class Attributes
     {
         public string name = string.Empty;
         public string type = string.Empty;
-        public string quality = string.Empty;
         public float value = 0;
-        public float max = 0;
-        public float GetPercentage()
-        {
-            return Inventory.instance.GetPercentage(value,max);
-        }
-        public void IncreaseValue()
-        {
-            value ++;
-            if(value > max)
-            {
-                value = max;
 
-            }
-
-        }
-        public void DecreaseValue()
-        {
-            value --;
-            if(value <= 0)
-            {
-                value = 0;
-                if(name == "Liquide")
-                {
-                    quality = string.Empty;
-                }
-                if(name == "Life")
-                {
-                    quality = "casser";
-                }
-            }
-        }
-
-        public bool ActivateVerticalBar()
-        {
-            return (name == "Liquide");
-        }
-
-        public bool ActivateConsumableLifeBar()
-        {
-            return (name == "Life");
-        }
+        public string consumableType = string.Empty;
         public bool destroyItemAfterAction = false;
-        public Actions [] actions = null;
-        public Actions GetActions(string _name)
-        {
-            if(_name == string.Empty || actions.Length <= 0)
-            {
-                return null;
-            }
-            for (int i = 0; i < actions.Length; i++)
-            {
-                if(actions[i].name == _name)
-                {
-                    return actions[i];
-                }
-            }
-            return null;
-        }
+  
+       
 
     }
 
-    [System.Serializable]
-    public class Actions
-    {
-        public string name = string.Empty;
-        public string fonctions = string.Empty;
-        public int value = 0;
-    }
+
+
+
+
+
 }

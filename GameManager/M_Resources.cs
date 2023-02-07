@@ -88,6 +88,40 @@ public class M_Resources : MonoBehaviour
         return null;
     }
 
+    public GameObject GetHole(string _name)
+    {
+        if (_name == string.Empty || surfaces_DataBase.Length <= 0)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < surfaces_DataBase.Length; i++)
+        {
+            if (surfaces_DataBase[i].name == _name)
+            {
+                return surfaces_DataBase[i].bullet_hole;
+            }
+        }
+        return null;
+    }
+
+    public AudioClip GetClip(string _name)
+    {
+        if (_name == string.Empty || surfaces_DataBase.Length <= 0)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < surfaces_DataBase.Length; i++)
+        {
+            if (surfaces_DataBase[i].name == _name)
+            {
+                return surfaces_DataBase[i].clip;
+            }
+        }
+        return null;
+    }
+
     public List<Item> GetRandomLoot(string _lootType, int maxStock)
     {
         LootTable table = new LootTable();
@@ -117,36 +151,17 @@ public class M_Resources : MonoBehaviour
                     if(item != null)
                     {
                   
-                        if(item.ItemRarity == ItemRarityEnum.Common)
-                        {
-                           item.rarityItem  = Random.Range(85,100);// 80%
-
-                        }else  if(item.ItemRarity == ItemRarityEnum.Rare)
-                        {
-                            item.rarityItem  = Random.Range(65,85);//70%
-
-                        }else  if(item.ItemRarity == ItemRarityEnum.Epic)
-                        {
-                            item.rarityItem  = Random.Range(50,65); //50%
-
-                        }else  if(item.ItemRarity == ItemRarityEnum.Legendary)
-                        {
-                            item.rarityItem  = Random.Range(35,50);// 40%
-
-                        }else  if(item.ItemRarity == ItemRarityEnum.Mythic)
-                        {
-                            item.rarityItem  = Random.Range(10,35); // 25%
-                        }
+                        
                         
                         float randomPercentageLoot = Random.Range(0,100);
-                        if(randomPercentageLoot <= item.rarityItem)
+                        if(randomPercentageLoot <= 10)
                         {
                             // random stack loot item amount
                             if(item.stackable)
                             {
-                                int randomStack = Random.Range(1,Mathf.RoundToInt(item.maxAmount / 2));
+                              
                                 Item itemAmount = Instantiate(item);
-                                itemAmount.amount = randomStack;
+                              
                                 lootItems.Add(itemAmount);
                             }else
                             {
@@ -232,7 +247,8 @@ public class M_Resources : MonoBehaviour
     {
         public string name = string.Empty;
         public GameObject bullet_impact = null;
-
+        public GameObject bullet_hole = null;
+        public AudioClip clip;
     }
 
 

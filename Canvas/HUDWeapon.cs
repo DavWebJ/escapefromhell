@@ -1,94 +1,91 @@
 using System.Collections;
 using UnityEngine.UI;
 using UnityEngine;
+
 namespace BlackPearl
 {
     public class HUDWeapon : MonoBehaviour
     {
         public static HUDWeapon instance = null;
-        public Text weapont_text = null;
-        private Text weapont_ammo_text = null;
-        public Image  icon = null;
-        public Text reload_text = null;
-        public GameObject reload_go = null;
 
-        [SerializeField] private Image batery_fill = null;
-        public GameObject batery = null;
-        public Sprite batery_normal = null;
-        public Sprite batery_empty = null;
-        public bool isFlashlight = false;
-        [SerializeField] public GameObject action_flashlight = null;
-        public bool canUseFlashLight = false;
+        public Text ammo_text;
+
+        public bool gunEquiped = false;
+        public GameObject gunInputreload;
+        public GameObject gunfireInput;
+        public int amountAmmoIninventory = 0;
+        public int maxAmmo = 9;
+        public int currentAmmo = 0;
+
         private void Awake()
         {
             if(instance == null)
                 instance = this;
-                
-                weapont_ammo_text = transform.Find("ammos").GetComponent<Text>();
-                icon  = transform.Find("icon").GetComponent<Image>();
-                // icon.sprite = null;
-                GetWeaponInfos(null);
-                reload_go.SetActive(false);
-                
+          
+                ammo_text = transform.Find("ammos").GetComponentInChildren<Text>();
+  
    
         }
 
-        public void GetWeaponInfos(Item item)
+        private void Start()
         {
-            WeaponItem weapon = item as WeaponItem;
-            
-            if(weapon == null)
-            {
-                
-                weapont_ammo_text.text = string.Empty;
-                icon.sprite = null;
-                gameObject.SetActive(false);
-                isFlashlight = false;
-                return;
-            }
+            gunInputreload.SetActive(false);
+            gunfireInput.SetActive(false);
+
+            amountAmmoIninventory = CheckRemainingAmmoGunInInventory();
+            currentAmmo = 0;
+            InitRendererAmmo();
+        }
+
+        public void InitRendererAmmo()
+        {
+
+            gameObject.SetActive(false);
+        }
+
+        public int CheckRemainingAmmoGunInInventory()
+        {
+            return Inventory.instance.AmountItemInInventory("ammo_gun");
+        }
+
+
+        public void ShowReloadInput()
+        {
+            gunInputreload.SetActive(true);
+            gunfireInput.SetActive(true);
+        }
+
+        public void HideReloadInput()
+        {
+            gunInputreload.SetActive(false);
+            gunfireInput.SetActive(false);
+        }
+
+        public void ShowHudAmmo()
+        {
             gameObject.SetActive(true);
-            if (weapon != null && weapon.itemType == ItemType.Weapon)
-            {
-                isFlashlight = false;
-                batery.SetActive(false);
-                
-                weapont_ammo_text.text = weapon.ammo + " / " + weapon.max_ammo;
-                Item Ammo = GameManager.instance.resources.GetitemByName("AmmoGun");
-                icon.sprite = Ammo.ItemIcon;
-            }
-            if (weapon != null && weapon.itemType == ItemType.FlashLight)
-            {
-                isFlashlight = true;
-                batery.SetActive(true);
-                weapont_ammo_text.text = (int)weapon.batery + " / " + weapon.batery_max;
-            }
-
-
         }
 
-
-
-        public void Ui_Batery(float value,float max)
+        public void HideHudAmmo()
         {
-
-            float percent = Inventory.instance.GetPercentage(value,max);
-           
-            batery_fill.fillAmount = percent;
-            batery_fill.color = HUD.instance.bateryBarColor.Evaluate(percent);
-            
+            gameObject.SetActive(false);
         }
 
-        public void ShowReload(bool active,string message)
-        {
-    
-            reload_go.SetActive(active && isFlashlight);
-            reload_text.text = message;
-        }
 
 
         private void Update()
         {
-            action_flashlight.SetActive(isFlashlight && canUseFlashLight);
+            amountAmmoIninventory = CheckRemainingAmmoGunInInventory();
+            if (currentAmmo <= 0)
+            {
+                currentAmmo = 0;
+
+            }
+
+            if (gunEquiped)
+            {
+                ammo_text.text = currentAmmo + " / " + maxAmmo;
+            }
         }
 
 

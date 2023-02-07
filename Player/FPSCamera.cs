@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using SUPERCharacter;
 using UnityEngine.InputSystem;
 using UnityEngine;
 
@@ -12,54 +13,49 @@ namespace BlackPearl{
         public Transform targetZoom = null;
         public Transform armsHolder = null;
         public float zoomAim = 15;
-        private FirstPersonAIO player;
+        private SUPERCharacterAIO player;
         public Camera cam = null;
-        public const float rayDist = 2;
-        public float dropForce = 20;
-
-        private PickUp currInteract = null;
-        private float fov_origin = 60;
-        public bool isInterracting = false;
-
-        private void Awake()
-        {
+        public float dropForce = 8;
+        public LayerMask mask;
+        [SerializeField] public float RayLength;
+        public bool resetRotation = true;
+        public ItemToPickUp currentItem;
+        public PickUp pickup;
 
 
-                
-            
-        }
+
         private void Start() {
-           
-            // rain = GetComponentInChildren<RainCameraController>();
-        
+
+            cam = GetComponent<Camera>();
+            transform.rotation = Quaternion.identity;
+            StartCoroutine(ApplyRotation());
         }
 
 
-        public void Init(FirstPersonAIO _player)
+        public void Init(SUPERCharacterAIO _player)
         {
             this.player = _player;
-            cam = GetComponent<Camera>();
-            fov_origin = cam.fieldOfView;
+         
+            pickup = player.GetComponent<PickUp>();
+
             targetLook = transform.Find("TargetLook");
             targetEject = transform.Find("DropPoint");
             armsHolder = transform.Find("HolderArms");
             targetZoom = transform.Find("TargetZoom");
 
+
  
         }
 
-
-        public void Aim(bool aiming)
+        public IEnumerator ApplyRotation()
         {
-            // if(aiming)
-            // {
-            //     cam.fieldOfView = Mathf.Lerp(cam.fieldOfView,fov_origin - zoomAim , Time.deltaTime * 8);
-            // }
-            // else
-            // {
-            //     cam.fieldOfView = Mathf.Lerp(cam.fieldOfView,fov_origin , Time.deltaTime * 8);
-            // }
+            yield return new WaitForSeconds(0.5f);
+            resetRotation = false;
+            yield return new WaitForSeconds(2);
+            resetRotation = true;
+            yield break;
         }
+
 
         public void updateTargetLook()
         {
@@ -75,143 +71,108 @@ namespace BlackPearl{
                 targetLook.position = cam.transform.forward * 1000f;
             }
         }
-        
-        public void updateRaycast()
+
+        private void FixedUpdate()
         {
-            
-            if(CanInterract())
+            if (transform.rotation != Quaternion.identity && !resetRotation)
             {
-
-                // Creates a Ray from the center of the viewport
-                Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-                RaycastHit hit;
-                Physics.Raycast(ray,out hit,rayDist);
-                Vector3 hitPosition = hit.point;
-                float hitDistance = hit.distance;
-                float desiredDistance = 2f;
-
-
-                if (Physics.Raycast(ray, out hit, rayDist) && hit.collider.GetComponent<PickUp>())
-                {
-                    
-                    if(hitDistance < desiredDistance)
-                    {
-                        //Debug.DrawRay(ray.origin, ray.direction, Color.green);
-                        if (currInteract == null || currInteract != hit.collider.GetComponent<PickUp>())
-                        {
-                            if (currInteract != null)
-                            {
-
-                                currInteract.ActivateOutlines(false);
-                                currInteract.ActivateCurrentOutlines(false);
-                                HUDInfos.instance.SceneObjectInfos(null);
-                                isInterracting = false;
-
-                            }
-                            currInteract = hit.collider.GetComponent<PickUp>();
-                            isInterracting = true;
-                            if (currInteract.item.objectType == ObjectType.Interractable)
-                            {
-                                currInteract.ActivateOutlines(false);
-                                currInteract.ActivateCurrentOutlines(true);
-                            }
-                            else
-                            {
-                                currInteract.ActivateOutlines(isInterracting);
-                            }
-                            
-
-                            
-                     
-                            HUD.instance.ChangeCrossHair(HUD.crosshair_type.pickup);
-                            HUDInfos.instance.SceneObjectInfos(isInterracting ? currInteract : null);
-
-
-                        }
-                    }
-                }
-                else
-                {
-                    isInterracting = false;
-                    if (currInteract != null)
-                    {
-                        currInteract.ActivateOutlines(isInterracting);
-                        currInteract.ActivateCurrentOutlines(false);
-
-                        HUDInfos.instance.SceneObjectInfos(null);
-                        currInteract = null;
-                        isInterracting = false;
-
-                    }
-                    HUD.instance.ChangeCrossHair(HUD.crosshair_type.normal);
-                    
-                }
-
-               
-                    
-                // HUD.instance.ChangeCrossHair(HUD.crosshair_type.pickup);
-
+                Quaternion targetRotation = Quaternion.Euler(0, 0, 0);
+                transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * 8f);
 
             }
             else
             {
-               
-                if(currInteract != null)
+                resetRotation = true;
+            }
+        }
+
+
+        private void Update()
+        {
+
+            Vector3 origin = cam.transform.position;
+            Vector3 direction = cam.transform.forward;
+            RaycastHit hit;
+
+            if (Physics.Raycast(origin, direction * RayLength, out hit))
+            {
+                float dist = hit.distance;
+                if (hit.transform.TryGetComponent(out ItemToPickUp item) && dist <= RayLength)
                 {
-                    currInteract.ActivateOutlines(isInterracting);
-                    currInteract.ActivateCurrentOutlines(false);
-                    HUDInfos.instance.SceneObjectInfos(null);
-                    currInteract = null;
-                 
+                    
+                    if (item != null)
+                    {
+                        
+                        ActivateCurrentInterract(item);
+                        pickup.OnInterract(item);
+
+                    }
+
+                    
+                }
+                else
+                {
+                    
+                    ClearLastInterract();
+                    pickup.DisableInterraction();
+                    return;
                 }
             }
         }
 
-        public bool CanInterract()
-        {
 
-            return(Inventory.instance.isInventoryOpen == false);
+        void ClearLastInterract()
+        {
+            if (currentItem != null)
+            {
+                currentItem.ActivateCurrentOutlines(false);
+                currentItem = null;
+            }
         }
 
-        public void PickUpInput()
+        public void ActivateCurrentInterract(ItemToPickUp item)
         {
-            
-            if(isInterracting && currInteract != null)
+            if(currentItem != item)
             {
-
-
-                switch (currInteract.actionType)
-                {
-                    case PickUp.ActionType.pickable:
-                        currInteract.PickUpItem();
-                        break;
-                    case PickUp.ActionType.equipable:
-                        currInteract.EquipItem();
-                        break;
-                    case PickUp.ActionType.interractable:
-                        currInteract.InterractAction();
-                        break;
-                    default:
-                        break;
-                }
-
                 
-                HUDInfos.instance.SceneObjectInfos(null);
+                ClearLastInterract();
+                item.ActivateCurrentOutlines(true);
+                currentItem = item;
             }
         }
 
-
-
-        private void OnTriggerEnter(Collider other)
+        public void DestroyCurrentArms()
         {
-            if(other.tag == "lb_bird")
+            if(armsHolder.childCount > 0)
             {
-                player.playerVitals.Takedamage(15);
+                for (int i = 0; i < armsHolder.childCount; i++)
+                {
+                    Destroy(armsHolder.GetChild(i).gameObject);
+                }
+                
             }
         }
+
+        public void AddNewArms(Item go)
+        {
+            if(go != null)
+            {
+
+                Instantiate(go.ArmPrefab, armsHolder);
+
+
+            }
+        }
+
+        //private void OnDrawGizmos()
+        //{
+        //    Gizmos.color = Color.red;
+        //    Gizmos.DrawLine(transform.position, transform.forward * RayLength);
+        //}
+
     }
 
-   
+
 
 
 }

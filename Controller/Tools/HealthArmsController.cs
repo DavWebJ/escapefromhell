@@ -11,7 +11,7 @@ public class HealthArmsController : MonoBehaviour
 
     [SerializeField] private AudioSource audios = null;
     private Animator animator = null;
-    private FirstPersonAIO player;
+
     public bool isInitialized = false;
    public void Initialized()
     {
@@ -20,8 +20,8 @@ public class HealthArmsController : MonoBehaviour
         audios.playOnAwake = false;
         audios.loop = false;
         audios.volume = 0.5f;
-        player = FindObjectOfType<FirstPersonAIO>();
-        audios.PlayOneShot(item.equiped_clip,0.5f);
+     
+       
         // Heal();
         StartCoroutine(PlayHeal());
         isInitialized = true;
@@ -42,9 +42,9 @@ public class HealthArmsController : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if(!audios.isPlaying)
         {
-            audios.PlayOneShot(item.heal_clip);
+            
         }
-        player.GetComponent<VitalState>().AddHealthFull(100);
+        //player.GetComponent<VitalState>().AddHealthFull(100);
 
     }
     public IEnumerator PlayHeal()

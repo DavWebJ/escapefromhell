@@ -20,7 +20,7 @@ namespace BlackPearl
         public void ShowPanel(GameObject _sceneObj,Item _sceneItem)
         {
          
-            if(_sceneObj == null || _sceneItem == null || _sceneItem.itemType != ItemType.Storage)
+            if(_sceneObj == null || _sceneItem == null )
             {
    
                 HidePanel();
@@ -42,7 +42,7 @@ namespace BlackPearl
 
             if(storage.slotList.Count > 0)
             {
-                Inventory.instance.UpdateStorageSlots(gridSlot,storage.slotList);
+                
             }else
             {
                 // create empty slot by amount max
@@ -53,7 +53,7 @@ namespace BlackPearl
                 {
                     for (int i = 0; i < storage.lootItems.Count; i++)
                     {
-                        Inventory.instance.AddItemStorage(storage.lootItems[i]);
+                        
                     }
                 }
 
@@ -65,7 +65,7 @@ namespace BlackPearl
             if(storage != null)
             {
                 storage.slotList.Clear();
-                storage.slotList = Inventory.instance.GetSlots(gridSlot);
+           
                 storage.lootItems.Clear();
             }
 

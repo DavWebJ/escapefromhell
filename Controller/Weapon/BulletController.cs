@@ -4,14 +4,17 @@ using UnityEngine;
 using BlackPearl;
 public class BulletController : MonoBehaviour
 {
-   [SerializeField] private float speed = 800;
+   [SerializeField] private float speed = 0.1f;
    [SerializeField] private float impact = 200;
-   
 
+    [SerializeField] private AudioSource audios;
+
+    [SerializeField] public AudioClip metal, concrete, wood;
    private Vector3 lastPos = new Vector3();
     void Start()
     {
         lastPos = transform.position;
+
         
     }
 
@@ -27,43 +30,59 @@ public class BulletController : MonoBehaviour
           {
               if(hit.collider)
               {
-
+               
                 if (hit.collider.sharedMaterial)
                 {
+                    
                     GameObject go = GameManager.instance.resources.getSurface(hit.collider.sharedMaterial.name);
-                    if (hit.collider.sharedMaterial.name == "Crow")
+                    GameObject hole = GameManager.instance.resources.GetHole(hit.collider.sharedMaterial.name);
+
+                    switch (hit.collider.sharedMaterial.name)
                     {
-                        print("hit");
-                        hit.collider.GetComponent<lb_Bird>().touch();
+                        case "Wood":
+                            if(audios != null)
+                            {
+                                if(wood != null)
+                                {
+                                    audios.PlayOneShot(wood);
+                                    
+                                }
+                            }
+                            
+                            break;
+                        case "Metal":
+                            audios.PlayOneShot(metal);
+                            break;
+                        case "Concrete":
+                            audios.PlayOneShot(concrete);
+                            break;
+                        default:
+                            break;
                     }
                     if (go != null)
                     {
                         GameObject impact = Instantiate(go, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal));
                         impact.transform.parent = hit.collider.transform;
-                    }
-                }
-                else
-                {
-                    if(hit.collider.tag == "lb_bird")
-                    {
+
+
                         
-                        hit.collider.GetComponent<lb_Bird>().touch();
+                    }
+                    if(hole != null)
+                    {
+                        GameObject bullet_hole = Instantiate(hole, hit.point + hit.normal * 0.001f, Quaternion.LookRotation(hit.normal));
+                        bullet_hole.transform.parent = hit.collider.transform;
                     }
                 }
 
+                    Destroy(gameObject, 3);
 
-              }
-
-
-              Destroy(gameObject,2);
-
-            
-            //   if(hit.rigidbody)
-            //   {
-            //       hit.rigidbody.AddForce(-hit.normal * impact);
-            //   }
+            }
+            else
+            {
+                Destroy(gameObject, 5);
+            }
           }
-
+        
         lastPos = transform.position;
     }
 }

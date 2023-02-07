@@ -1,44 +1,47 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using SUPERCharacter;
 using UnityEngine.InputSystem;
-using UnityEngine;
-
 using System.Linq;
+using UnityEngine;
+using System;
 
 namespace BlackPearl
 {   
-    public enum ItemType
-    {
-        None = 0,All = 1,Consumables = 2,Zippo = 3,Health = 4,Storage = 5,Market = 6,Resources = 7,Buildable = 8,Liquide = 9,Gun = 10,Ammo = 11,FlashLight = 12,Rifle = 13,Weapon = 14
-    }
-    public enum ItemRarityEnum
-	{
-		Common =0 , Rare = 1, Epic = 2, Legendary = 3, Mythic = 4
-	}
-    public enum ObjectType{None,Equipable,Interractable}
-    public enum Firemode{auto,semi,none}
-    public enum WeaponType{none,scoped,sight}
+
+ 
 
     public class Inventory : MonoBehaviour
     {
         #region variables
         public static Inventory instance = null;
-        [HideInInspector] public FirstPersonAIO player = null;
+        [HideInInspector] public SUPERCharacterAIO player = null;
         [HideInInspector] public HUDVitals vitals;
         public bool isInventoryOpen = false;
         private PlayerInputAction inputAction;
         [Header("reference panel")]
-        [Tooltip("ici sont réferencer tous les panels de l'inventaire, les panels doivent être enfant direct de l'inventaire")]
         public PanelBackPack panelBackPack = null;
-        public PanelOptions panel_options = null;
+
+        public Sprite emptySlot;
+        
         public PanelStorage panel_storage = null;
-        public HUDObjectif panel_objectif = null;
-        // public PanelCraft panel_craft = null;
-        // public PanelMarket panel_market = null;
-        public PanelItemInfos panel_infos = null;
+
+        public bool canSelect = false;
+        private float timer = 0;
+ 
+        //public HUDObjectif panel_objectif = null;
+
         [SerializeField] public GameObject slotPref;
-   
+
+
+        [Header("Color Fx")]
+       [SerializeField] public Color colorInterractItem;
+        [SerializeField] public Color colorToolsItem;
+        [SerializeField] public Color colorWeaponItem;
+        [SerializeField] public Color colorConsumableItem;
+        [SerializeField] public Color colorKeyItem;
+        [SerializeField] public Color colorBackPackItem;
 
         [Header("Drag & Drop")]
         public bool isInDrag = false;
@@ -46,6 +49,13 @@ namespace BlackPearl
         private Slot startSlot = null;
 
         [HideInInspector] public Slot endSlot = null;
+
+       [SerializeField] private List<ItemInInventory> inventoryDatabase = new List<ItemInInventory>();
+       [SerializeField] private List<ItemInInventoryHotbar> inventoryHotbar = new List<ItemInInventoryHotbar>();
+
+
+
+
 
         #endregion
 
@@ -58,33 +68,47 @@ namespace BlackPearl
                 GetComponent<Canvas>().enabled = false;
 
             inputAction = new PlayerInputAction();
+
         }
 
         private void Start() {
-            player = FindObjectOfType<FirstPersonAIO>();
+            player = FindObjectOfType<SUPERCharacterAIO>();
             vitals = FindObjectOfType<HUDVitals>();
             panelBackPack = GetComponentInChildren<PanelBackPack>();
             panelBackPack.Init();
-            panel_options = GetComponentInChildren<PanelOptions>();
-            panel_options.Init();
-            panel_objectif = GetComponent<HUDObjectif>();
+            UiNavigationManager.instance.Init();
+           
             // panel_storage = GetComponentInChildren<PanelStorage>();
             // panel_storage.Init();
             // panel_craft = GetComponentInChildren<PanelCraft>();
             // panel_craft.Init();
-            panel_infos = GetComponentInChildren<PanelItemInfos>();
-            panel_infos.HideItemInfos();
             dragImages = transform.Find("DragImage").GetComponent<DragImages>();
+
+            //GameBegin();
         }
 
-        public void Init(FirstPersonAIO _player)
+
+
+        public void Init(SUPERCharacterAIO _player)
         {
 
-            Item lighter = GameManager.instance.resources.GetitemByName("Lighter") as WeaponItem;
-           HotBar.instance.AddItemToSlot(lighter);
 
             player =_player;
             HotBar.instance.Init(player);
+            UpdateInventoryDataBase();
+            UpdateInventoryHotBar();
+            UiNavigationManager.instance.EnableNavigationHotbar();
+            
+        }
+
+        public void GameBegin()
+        {
+
+            Instantiate(inventoryHotbar[0].itemHotbar.ArmPrefab, player.fpscam.armsHolder);
+
+            UpdateInventoryHotBar();
+            AudioM.instance.PlayEquiped();
+            ScreenEventsManager.instance.SetVisualMessage(true, inventoryHotbar[0].itemHotbar, 1);
         }
 
         private void Update() {
@@ -93,43 +117,61 @@ namespace BlackPearl
                // dragImages.transform.localPosition = (Input.mousePosition) - GetComponent<Canvas>().transform.localPosition;
             }
 
-           
+            if (timer <= 0)
+                canSelect = true;
+
+            if (timer > 0)
+            {
+                canSelect = false;
+                timer -= Time.deltaTime;
+            }
+
+
         }
+
+        
+
+       
+
+        
 
         #region show hide inventory
         public void OpenCloseInventory()
         {
             isInventoryOpen = !isInventoryOpen;
-            CheckFirstSlot();
-            inputAction.PlayerMovement.Disable();
-            AudioM.instance.PlayOneShotClip(AudioM.instance.AudiosHUD, AudioM.instance.openHudClip);
 
-            // isBlurtheUi = !isBlurtheUi;
-            GetComponent<Canvas>().enabled = isInventoryOpen;
-            //player.StopSmouthMovementPlayer();
-            player.SetController(!isInventoryOpen);
-            GameManager.instance.SetMouseCursor(isInventoryOpen);
-            panel_options.HidePanelOption(isInventoryOpen);
-            panel_options.HideOption();
             
+            if(AudioM.instance != null)
+            {
+                AudioM.instance.PlayOneShotClip(AudioM.instance.InventoryAudioSource, AudioM.instance.openHudClip);
+            }
+           
+            GetComponent<Canvas>().enabled = isInventoryOpen;
+            
+            if (isInventoryOpen)
+            {
 
-            // NaviguationSystemCanvas.instance.checkFirstSelected();
+                UiNavigationManager.instance.EnableNavigationInventory();
+                HUD.instance.ChangeCrossHair(HUD.crosshair_type.None);
+                InputManager.instance.EnableInputsInventoryActions();
+                InputManager.instance.inputs_ui.enabled = true;
 
+                InputManager.instance.inputs.PlayerMovement.Disable();
+                player.SetController(false);
+
+
+            }
+            
             if (!isInventoryOpen)
             {
-                // if(panel_storage.gameObject.activeInHierarchy)
-                // {
-                //     panel_storage.HidePanel();
-                // }
-                // if(panel_market.gameObject.activeInHierarchy)
-                // {
-                //     panel_market.HidePanelMarket();
-                // }
-                if(panel_infos.gameObject.activeInHierarchy)
-                {
-                    panel_infos.HideItemInfos();
-                }
-                StartCoroutine(ReEnabledInputPlayer());
+                InputManager.instance.DisableInputsInventoryActions();
+                UiNavigationManager.instance.EnableNavigationHotbar();
+           
+                HUD.instance.ChangeCrossHair(HUD.crosshair_type.normal);
+                HotBar.instance.SelectButton(HotBar.instance.LastButtonSelected());
+                InputManager.instance.inputs.PlayerMovement.Enable();
+                player.SetController(true);
+                InputManager.instance.inputs_ui.enabled = false;
 
             }
            
@@ -137,163 +179,368 @@ namespace BlackPearl
         }
         #endregion
         
-        public IEnumerator ReEnabledInputPlayer()
+        
+
+        public void AddItemToInventory(Item item,int amount)
         {
-            yield return new WaitForSeconds(0.5f);
+            if (item.itemCategory == Category.BackPack)
+            {
+                panelBackPack.isBackPackEquiped = true;
+                panelBackPack.InitBackPack(item.backpackSize);
+                UpdateInventoryDataBase();
+                return;
+            }
+            ItemInInventory[] itemInInventory = inventoryDatabase.Where(elem => elem.itemData == item).ToArray();
+            bool itemAdded = false;
+            if(itemInInventory.Length > 0 && item.stackable)
+            {
+                for (int i = 0; i < itemInInventory.Length; i++)
+                {
+                    if(itemInInventory[i].amount < item.maxStack)
+                    {
+                        itemAdded = true;
+                        itemInInventory[i].amount += amount;
+                        break;
+                    }
+                }
+                if (!itemAdded)
+                {
+                    inventoryDatabase.Add(
+                        new ItemInInventory
+                        {
+                            itemData = item,
+                            amount = amount
+                        });
+                }
+
+            }
+            else
+            {
+                inventoryDatabase.Add(
+                    new ItemInInventory
+                    {
+                        itemData = item,
+                        amount = amount
+                    });
+            }
+            UpdateInventoryDataBase();
+        }
+
+        public void DestroyItemFromInventory(Item item,bool destroyAll,int amountTodestroy = 0)
+        {
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData == item).FirstOrDefault();
+            if(itemInInventory != null && itemInInventory.amount > 1 && !destroyAll)
+            {
+                itemInInventory.amount--;
+            }
+            else
+            {
+                inventoryDatabase.Remove(itemInInventory);
+            }
+            UpdateInventoryDataBase();
+        }
+
+        public void DestroyItemFromInventoryWithAmount(Item item, int amountTodestroy)
+        {
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData == item).FirstOrDefault();
+            if (itemInInventory != null && itemInInventory.amount >= amountTodestroy)
+            {
+                itemInInventory.amount -= amountTodestroy;
+            }
+            else
+            {
+                itemInInventory.amount = 0;
+                
+            }
+            UpdateInventoryDataBase();
+        }
+
+
+
+        public void UpdateInventoryDataBase()
+        {
+            if (panelBackPack.grid.childCount <= 0)
+                return;
+
+            for (int i = 0; i < panelBackPack.grid.childCount; i++)
+            {
+                Slot currentSlot = panelBackPack.grid.GetChild(i).GetComponent<Slot>();
+                currentSlot.currentItem = null;
+                currentSlot.itemIcon.sprite = currentSlot.GetComponent<Image>().sprite;
+                currentSlot.itemAmount.text = string.Empty;
+
+            }
+
+            for (int i = 0; i < inventoryDatabase.Count; i++)
+            {
+                Slot currentSlot = panelBackPack.grid.GetChild(i).GetComponent<Slot>();
+                currentSlot.currentItem = inventoryDatabase[i].itemData;
+                
+                if(inventoryDatabase[i].amount > 0)
+                {
+                    currentSlot.itemIcon.sprite = inventoryDatabase[i].itemData.ItemIcon;
+                    currentSlot.itemAmount.text = "X " + inventoryDatabase[i].amount.ToString();
+                }
+                else if(inventoryDatabase[i].amount <= 0)
+                {
+                    currentSlot.currentItem = null;
+                    currentSlot.itemIcon.sprite = emptySlot;
+                    currentSlot.itemAmount.text = string.Empty;
+                    
+                }
+                
+
+            }
+       
+        }
+
+        public int GetAmountItem(Item item)
+        {
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData == item).FirstOrDefault();
+            if(itemInInventory == null)
+            {
+                return 0;
+            }
+            return itemInInventory.amount;
+        }
+
+        public int GetBateryRemain(Item item)
+        {
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData == item).FirstOrDefault();
+
+            return itemInInventory.itemData.maxBatery;
+        }
+
+        public Item getItemByname(string item_name)
+        {
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData.ItemName == item_name).FirstOrDefault();
+            return itemInInventory.itemData;
+        }
+
+
+        public void AddItemToInventoryHotBar(Item item)
+        {
+            ItemInInventoryHotbar[] itemInInventoryHotbar = inventoryHotbar.Where(elem => elem.itemHotbar == item).ToArray();
+            bool itemAdded = false;
+            if (itemInInventoryHotbar.Length > 0 && item.stackable)
+            {
+                for (int i = 0; i < itemInInventoryHotbar.Length; i++)
+                {
+                    if (itemInInventoryHotbar[i].amount < item.maxStack)
+                    {
+                        itemAdded = true;
+                        itemInInventoryHotbar[i].amount ++;
+
+                        break;
+                    }
+                }
+                if (!itemAdded)
+                {
+                    inventoryHotbar.Add(
+                        new ItemInInventoryHotbar
+                        {
+                            itemHotbar = item,
+                            amount = 1
+                        });
+                }
+
+            }
+            else
+            {
+                inventoryHotbar.Add(
+                    new ItemInInventoryHotbar
+                    {
+                        itemHotbar = item,
+                        amount =1
+                    });
+
+
+            }
+
+            UpdateInventoryHotBar();
+            
+        }
+
+
+        public void MoveItemFromInventoryToInventoryHotBar(Item item)
+        {
+            ItemInInventoryHotbar[] itemInInventoryHotbar = inventoryHotbar.Where(elem => elem.itemHotbar == item).ToArray();
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData == item).FirstOrDefault();
+            bool itemAdded = false;
+            if (itemInInventoryHotbar.Length > 0 && item.stackable)
+            {
+                for (int i = 0; i < itemInInventoryHotbar.Length; i++)
+                {
+                    if (itemInInventoryHotbar[i].amount < item.maxStack)
+                    {
+                        itemAdded = true;
+                        itemInInventoryHotbar[i].amount += itemInInventory.amount;
+                        
+                        break;
+                    }
+                }
+                if (!itemAdded)
+                {
+                    inventoryHotbar.Add(
+                        new ItemInInventoryHotbar
+                        {
+                            itemHotbar = item,
+                            amount = 1
+                        });
+                }
+
+            }
+            else
+            {
+                inventoryHotbar.Add(
+                    new ItemInInventoryHotbar
+                    {
+                        itemHotbar = item,
+                        amount = itemInInventory.amount
+                    });
+                
+                
+            }
           
-            inputAction.PlayerMovement.Enable();
+            DestroyItemFromInventory(itemInInventory.itemData,true);
+            // instantiate arm
+            if (player.fpscam.armsHolder.childCount > 0)
+            {
+
+                if (item != null)
+                {
+
+
+                    StartCoroutine(TransitionReplaceHoldEquipment(item));
+                }
+            }
+            else
+            {
+
+                StartCoroutine(TransitionNewEquipment(item));
+            }
+            AudioM.instance.PlayEquiped();
+            UpdateInventoryHotBar();
+            UpdateInventoryDataBase();
+        }
+
+        public IEnumerator TransitionNewEquipment(Item newItem)
+        {
+            player.fpscam.AddNewArms(newItem);
             yield break;
         }
 
-        #region Items
-        public bool AddItemBackPack(Item item)
+        public IEnumerator TransitionReplaceHoldEquipment(Item newItem)
         {
+            ArmsController arms = player.fpscam.armsHolder.GetChild(0).GetComponent<ArmsController>();
+            arms.PlayHideAnimation();
+            yield return new WaitForSeconds(arms.anim.GetCurrentAnimatorClipInfo(0).Length);
 
-            return AddItems(item, panelBackPack.grid);
+            player.fpscam.DestroyCurrentArms();
+            yield return new WaitForSeconds(0.2f);
+            player.fpscam.AddNewArms(newItem);
+
+            yield return new WaitForSeconds(0.2f);
+
+            yield break;
+        }
+        public void DestroyItemFromHotBarInventory(Item item)
+        {
+            ItemInInventoryHotbar itemInHotbarInventory = inventoryHotbar.Where(elem => elem.itemHotbar == item).FirstOrDefault();
+            if (itemInHotbarInventory != null && itemInHotbarInventory.amount > 1)
+            {
+                itemInHotbarInventory.amount--;
+            }
+            else
+            {
+                inventoryHotbar.Remove(itemInHotbarInventory);
+            }
+
+               UpdateInventoryHotBar();
+  
         }
 
-        public bool AddItemStorage(Item item)
+        public int GetAmountItemHotBarInventory(Item item)
         {
-            return AddItems(item,panel_storage.gridSlot);
+            ItemInInventoryHotbar itemInHotbarInventory = inventoryHotbar.Where(elem => elem.itemHotbar == item).FirstOrDefault();
+
+            return itemInHotbarInventory.amount;
         }
-        // public bool AddItemMarket(Item item)
-        // {
-        //     return AddItems(item,panel_market.gridSlot);
-        // }
-        private bool AddItems(Item item, Transform grid)
+
+        public void UpdateInventoryHotBar()
         {
-            
-            if(item == null || item.amount <= 0 )
+            if (HotBar.instance.gridSlots.childCount <= 0)
+                return;
+
+            for (int i = 0; i < HotBar.instance.gridSlots.childCount; i++)
             {
-                return false;
+                SlotHotBar currentHotBarSlot = HotBar.instance.gridSlots.GetChild(i).GetComponent<SlotHotBar>();
+                currentHotBarSlot.currentItem = null;
+                currentHotBarSlot.itemIcon.sprite = currentHotBarSlot.GetComponent<Image>().sprite;
+
+
             }
             
-            List<Slot> slotList = GetSlots(grid);
-            
-            if(slotList.Count <= 0)
+            for (int i = 0; i < inventoryHotbar.Count; i++)
             {
-                return false;
-            }
-            
-            // search first slot ref item
-            Slot slotFound = slotList.FirstOrDefault(p => p.currentItem != null
-            && p.currentItem.ItemName == item.ItemName
-            && p.currentItem.stackable 
-            && p.currentItem.amount + item.amount <= item.maxAmount);
-           
-
-            // slot is find then we can stack item
-            if(slotFound != null)
-            {
-                if (slotFound.currentItem.itemType == ItemType.Ammo)
-                {
-                    slotFound.ammoAmount += item.amount;
-                    slotFound.currentItem.amount += item.amount;
-                   
-                }
-                else
-                {
-                    slotFound.currentItem.amount += item.amount;
-                }
-                
-
-                //panelBackPack.UpdateWeight(item.amount);
-                slotFound.UpdateSlot();
-            }else// no item is find then we search first slot empty
-            {
-                slotFound = slotList.FirstOrDefault(p => p.currentItem == null);
-                if(slotFound == null)
-                {
-                    
-                    HUD.instance.SetVisualMessage("Votre inventaire est plein !",Color.red,HUD.instance.prf_Message,HUD.instance.gridMessage);
-                    
-                    
-                    return true;
-                }
-                //slotFound.currentItem.Weight = item.Weight;
-                //panelBackPack.UpdateWeight(item.amount);
-                slotFound.ChangeItem(item);
+                SlotHotBar currentHotBarSlot = HotBar.instance.gridSlots.GetChild(i).GetComponent<SlotHotBar>();
+                currentHotBarSlot.currentItem = inventoryHotbar[i].itemHotbar;
+                currentHotBarSlot.itemIcon.sprite = inventoryHotbar[i].itemHotbar.ItemIcon;
+              
             }
 
-            HUD.instance.SetVisualMessage(true,item);
+        }
+
+
+
+        public int AmountItemInInventory(string _name)
+        {
+            ItemInInventory itemInInventory = inventoryDatabase.Where(elem => elem.itemData.ItemName == _name).FirstOrDefault();
+            if(itemInInventory != null)
+            {
+
+                return itemInInventory.amount;
+            }
+
+                return 0;
+            
+            
+        }
+
+
+        public bool InventoryIsFull()
+        {
+            return panelBackPack.currentInventorySize == inventoryDatabase.Count;
+            
+        }
+
+        public bool isBackPackEquiped()
+        {
+            return panelBackPack.isBackPackEquiped;
+            
+        }
+
+        public bool InventoryHotBarIsFull()
+        {
+            return HotBar.instance.maxItemInHotBar == inventoryHotbar.Count;
+        }
+
+        public List<ItemInInventory> GetAllInventoryItem()
+        {
+            return inventoryDatabase;
+        }
+
+        public bool AddItemStorage(Item item,int amount)
+        {
+            //return AddItems(item,panel_storage.gridSlot,amount);
             return true;
         }
-        #endregion
-        public void CheckFirstSlot()
-        {
-            //if(panelBackPack.inventoryEvent != null)
-            //{
-            //    if(panelBackPack.inventoryEvent.firstSelectedGameObject == null)
-            //    {
-            //        for (int i = 0; i < panelBackPack.grid.childCount; i++)
-            //        {
-            //            panelBackPack.inventoryEvent.firstSelectedGameObject = panelBackPack.grid.GetChild(0).gameObject;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        return;
-            //    }
-            //}
-            //else
-            //{
-            //    return;
-            //}
 
-        }
+        
+       
+
         #region Slots
-        public List<Slot> GetSlots(Transform grid)
-        {
-           
-            if(grid == null || grid.childCount <= 0)
-                return null;
-                List<Slot> slots = new List<Slot>();
-
-                for (int i = 0; i < grid.childCount; i++)
-                {
-                    
-                    slots.Add(grid.GetChild(i).GetComponent<Slot>());
-                }
-                
-                return slots;
-
-                
-        }
-        public int GetAmmoSlots(Transform grid)
-        {
-
-            List<Slot> slots = new List<Slot>();
-            int currAmmo = 0;
-            for (int i = 0; i < grid.childCount; i++)
-            {
-                if (slots[i].currentItem.itemType == ItemType.Ammo)
-                {
-                    slots[i].currentItem.amount++;
-                    currAmmo++;
-                }
-
-            }
-            print(currAmmo);
-            return currAmmo;
-
-
-        }
-
-        public List<Slot> GetAllSlots()
-        {
-
-                List<Slot> slots = new List<Slot>();
-                if(panelBackPack.grid.childCount > 0){
-
-                    for (int i = 0; i < panelBackPack.grid.childCount; i++)
-                    {
-                        slots.Add(panelBackPack.grid.GetChild(i).GetComponent<Slot>());
-                    }
-                }
-               
-                return slots;
-        } 
-
+        
         public void DestroyAllSlots(Transform grid)
         {
             if(grid == null || grid.childCount <= 0)
@@ -327,21 +574,7 @@ namespace BlackPearl
 
         }
 
-        public void UpdateStorageSlots(Transform grid,List<Slot> slots)
-        {
-            if(grid == null || slots.Count <= 0)
-            {
-                return;
-            }
-
-            for (int i = 0; i < slots.Count; i++)
-            {
-             Slot slot = Instantiate(slotPref,grid).GetComponent<Slot>();
-             slot.itemAccepted = slots[i].itemAccepted;
-             slot.slotType = slots[i].slotType;
-             slot.ChangeItem(slots[i].currentItem);
-            }
-        }
+        
         #endregion
 
         #region Drag & Drop
@@ -353,7 +586,7 @@ namespace BlackPearl
             isInDrag = true;
             dragImages.Refresh(slot.currentItem);
             startSlot = slot;
-            startSlot.set_SelectedImage(true);
+
             
         }
 
@@ -378,7 +611,7 @@ namespace BlackPearl
         {
             if(startSlot != null)
             {
-                startSlot.set_SelectedImage(false);
+                startSlot.itemIcon.sprite = null;
             }
             isInDrag = false;
             dragImages.Refresh(null);
@@ -398,7 +631,7 @@ namespace BlackPearl
             ItemType startItemType = startSlot.currentItem.itemType;
             ItemType endtSlotType = endSlot.itemAccepted;
 
-            if(endtSlotType == ItemType.All || (endtSlotType != ItemType.All && startItemType == endtSlotType))
+            if(endtSlotType == ItemType.None || (endtSlotType != ItemType.None && startItemType == endtSlotType))
             {
                 Item itemEndSlot = endSlot.currentItem;
                 if(CheckItemSlot(endSlot,startSlot.currentItem) && CheckItemSlot(startSlot,endSlot.currentItem))
@@ -406,18 +639,17 @@ namespace BlackPearl
                     //same item
                     if(itemEndSlot != null && (itemEndSlot.ItemName == startSlot.currentItem.ItemName) && itemEndSlot.stackable)
                     {
-                        while (endSlot.currentItem.amount < endSlot.currentItem.maxAmount)
-                        {
-                            if(startSlot.currentItem.amount > 0)
-                            {
-                                endSlot.currentItem.amount ++;
-                                startSlot.currentItem.amount --;
-                            }
-                            else 
-                                break;
-                        }
-                        startSlot.UpdateSlot();
-                        endSlot.UpdateSlot();
+                        //while (endSlot.currentItem.amount < endSlot.currentItem.maxStack)
+                        //{
+                        //    if(startSlot.currentItem.amount > 0)
+                        //    {
+                        //        endSlot.currentItem.amount ++;
+                        //        startSlot.currentItem.amount --;
+                        //    }
+                        //    else 
+                        //        break;
+                        //}
+
                         //HotBar.instance.Selection();
                         startSlot = null;
                         endSlot = null;
@@ -425,8 +657,7 @@ namespace BlackPearl
                         return;
                     }
 
-                    endSlot.ChangeItem(startSlot.currentItem);
-                    startSlot.ChangeItem(itemEndSlot);
+
 
                 }
             }
@@ -441,95 +672,11 @@ namespace BlackPearl
         private bool CheckItemSlot(Slot slot, Item item)
         {
             if(item == null) return true;
-            if(slot.itemAccepted == ItemType.All) return true;
+            if(slot.itemAccepted == ItemType.None) return true;
 
             return(slot.itemAccepted == item.itemType);
         }
         #endregion
-
-        public int ReturnsAmountRequiredForCraft(string item_name)
-        {
-            if(item_name == "")
-            return 0;
-
-            int result = 0;
-
-            List<Slot> slots = GetAllSlots();
-            if(slots.Count > 0)
-            {
-                for (int i = 0; i < slots.Count; i++)
-                {
-                    if(slots[i].currentItem != null && slots[i].currentItem.ItemName == item_name)
-                    {
-                        result += slots[i].currentItem.amount;
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        public int AmountConsumableInInventory(string item_name)
-        {
-            if(item_name == "")
-            return 0;
-
-            int result = 0;
-
-            List<Slot> slots = GetAllSlots();
-            if(slots.Count > 0)
-            {
-                for (int i = 0; i < slots.Count; i++)
-                {
-                    if(slots[i].currentItem != null && slots[i].currentItem.ItemName == item_name)
-                    {
-                        if(slots[i].currentItem.itemType == ItemType.Ammo)
-                        {
-                            result += slots[i].ammoAmount;
-                        }
-                        else
-                        {
-                            result += slots[i].currentItem.amount;
-                        }
-                        
-                    }
-                }
-            }
-
-            return result;
-        }
-
-
-        public void UpdateConsumableInInventory(string item_name,int consumable)
-        {
-            if (item_name == "")
-                return;
-           
-            List<Slot> slots = GetSlots(panelBackPack.grid);
-
-            if (slots.Count > 0)
-            {
-                for (int i = 0; i < slots.Count; i++)
-                {
-                    if (slots[i].currentItem != null && slots[i].currentItem.ItemName == item_name)
-                    {
-                        if (slots[i].currentItem.itemType == ItemType.Ammo)
-                        {
-                            slots[i].ammoAmount -= consumable;
-                            slots[i].UpdateSlotAmmo();
-                        }
-                        else
-                        {
-                            slots[i].currentItem.amount -= consumable;
-                            slots[i].UpdateSlot();
-                        }
-                            
-                        
-                    }
-                }
-            }
-
-        }
 
 
         public float GetPercentage(float value, float max)
@@ -539,6 +686,23 @@ namespace BlackPearl
 
 
     }
+
+    [System.Serializable]
+    public class ItemInInventory
+    {
+        public Item itemData;
+        public int amount;
+    }
+
+    [System.Serializable]
+    public class ItemInInventoryHotbar
+    {
+        public Item itemHotbar;
+        public int amount;
+        
+    }
+
+
 
 
 

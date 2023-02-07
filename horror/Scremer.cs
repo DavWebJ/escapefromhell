@@ -10,7 +10,7 @@ public class Scremer : MonoBehaviour
     public AudioClip[] screamerClip;
     public GameObject monster;
     public Animator anim;
-    public FirstPersonAIO player;
+    //public FirstPersonAIO player;
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
@@ -26,7 +26,7 @@ public class Scremer : MonoBehaviour
         
         if (other.tag == "Player")
         {
-            other.GetComponent<FirstPersonAIO>().SetController(false);
+           // other.GetComponent<FirstPersonAIO>().SetController(false);
             
             StartCoroutine(PlayScreamer());
             
@@ -38,9 +38,9 @@ public class Scremer : MonoBehaviour
 
         AudioClip clip = screamerClip[Random.Range(0, screamerClip.Length)];
 
-        AudioM.instance.screamer_audios.PlayOneShot(clip);
+       // AudioM.instance.screamer_audios.PlayOneShot(clip);
        
-       player.StartCoroutine(player.CameraShake(0.5f, 0.5f));
+       //player.StartCoroutine(player.CameraShake(0.5f, 0.5f));
         
         
         
@@ -48,7 +48,7 @@ public class Scremer : MonoBehaviour
         monster.GetComponent<Animator>().enabled = true;
      
         yield return new WaitForSeconds(1);
-        player.SetController(true);
+        //player.SetController(true);
         Destroy(monster.gameObject);   
         Destroy(gameObject);
     }

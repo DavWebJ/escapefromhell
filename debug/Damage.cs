@@ -21,7 +21,7 @@ public class Damage : MonoBehaviour
             if(timer >= 2)
             {
                
-                coll.GetComponent<VitalState>().Takedamage(damage);
+                coll.GetComponent<VitalState>().TakeDamage(damage);
                
             }
 
