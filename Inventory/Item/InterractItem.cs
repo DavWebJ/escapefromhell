@@ -15,5 +15,6 @@ public enum InterractType
 {
     Object,
     Door,
-    Drawer
+    Drawer,
+    Box
 }

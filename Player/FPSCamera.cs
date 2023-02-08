@@ -27,8 +27,8 @@ namespace BlackPearl{
         private void Start() {
 
             cam = GetComponent<Camera>();
-            transform.rotation = Quaternion.identity;
-            StartCoroutine(ApplyRotation());
+            
+            
         }
 
 
@@ -42,9 +42,10 @@ namespace BlackPearl{
             targetEject = transform.Find("DropPoint");
             armsHolder = transform.Find("HolderArms");
             targetZoom = transform.Find("TargetZoom");
+            StartCoroutine(ApplyRotation());
+            transform.LookAt(targetLook);
 
 
- 
         }
 
         public IEnumerator ApplyRotation()

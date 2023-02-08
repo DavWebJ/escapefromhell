@@ -30,7 +30,8 @@ public class PickUp : MonoBehaviour
         if (interactableObject)
         {
             ItemToPickUp InterractItem = interactableObject.GetComponent<ItemToPickUp>();
-            if (InterractItem)
+            SimpleInterract simpleInterract = interactableObject.GetComponent<SimpleInterract>();
+            if (InterractItem != null)
             {
                 if (isInterracting)
                 {
@@ -41,7 +42,16 @@ public class PickUp : MonoBehaviour
                 if (InterractItem.item.itemCategory == Category.Interract)
                 {
                     InputManager.instance.DisableInventoryInput();
-                    InterractAction(InterractItem);
+                    if(simpleInterract != null)
+                    {
+                        if (simpleInterract.isOpen) { DisableInterraction(); return; }
+                        SimpleInterraction(simpleInterract);
+                    }
+                    else
+                    {
+                        InterractAction(InterractItem);
+                    }
+                    
                     InputManager.instance.EnableInputInventory();
 
                 }
@@ -89,6 +99,7 @@ public class PickUp : MonoBehaviour
                     {
                         ObjectifManager.instance.SetObjectif(ObjectifManager.instance.objectifItems[0].itemData);
                         AudioM.instance.PlayNewObjectif();
+                        Inventory.instance.helperinput.SetActive(true);
                     }
                     else
                     {
@@ -139,6 +150,31 @@ public class PickUp : MonoBehaviour
 
     }
 
+    public void SimpleInterraction(SimpleInterract simpleinterract)
+    {
+       
+        if(simpleinterract == null) { return; }
+        if (simpleinterract.isAnimated)
+        {
+
+            interactableObject.GetComponent<Animation>().Play();
+            simpleinterract.PlaySound();
+            simpleinterract.isOpen = true;
+
+        }
+        HUDInfos.instance.ClosePickupInfos();
+        if (interactableObject.GetComponent<Objectif>() != null)
+        {
+            ObjectifItem obj = interactableObject.GetComponent<Objectif>().objectif;
+            ObjectifManager.instance.ValidateObjectif(obj);
+        }
+        if(simpleinterract.events != string.Empty)
+        {
+           Invoke(simpleinterract.events,1);
+        }
+        DisableInterraction();
+    }
+
     public void InterractAction(ItemToPickUp _interractItem)
     {
 
@@ -148,6 +184,23 @@ public class PickUp : MonoBehaviour
         switch (interract.interractType)
         {
             case InterractType.Object:
+                if (interract.isAnimated)
+                {
+
+                    interactableObject.GetComponent<Animation>().Play();
+
+
+                }
+                HUDInfos.instance.ClosePickupInfos();
+                if (interactableObject.GetComponent<Objectif>() != null)
+                {
+                    ObjectifItem obj = interactableObject.GetComponent<Objectif>().objectif;
+                    ObjectifManager.instance.ValidateObjectif(obj);
+                }
+
+                
+
+                DisableInterraction();
                 break;
             case InterractType.Door:
                 if (interract.needKey && interract.isLocked)
@@ -183,6 +236,23 @@ public class PickUp : MonoBehaviour
                     ObjectifManager.instance.ValidateObjectif(obj);
                 }
       
+                DisableInterraction();
+                break;
+            case InterractType.Box:
+                if (interract.isAnimated)
+                {
+
+                    interactableObject.GetComponent<Animation>().Play();
+
+                    
+                }
+                HUDInfos.instance.ClosePickupInfos();
+                if (interactableObject.GetComponent<Objectif>() != null)
+                {
+                    ObjectifItem obj = interactableObject.GetComponent<Objectif>().objectif;
+                    ObjectifManager.instance.ValidateObjectif(obj);
+                }
+
                 DisableInterraction();
                 break;
             default:
@@ -461,7 +531,10 @@ public class PickUp : MonoBehaviour
     }
 
 
-
+    public void SwichTheLight()
+    {
+        LightManager.instance.SwichOn();
+    }
 
 
 

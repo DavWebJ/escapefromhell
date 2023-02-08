@@ -15,6 +15,7 @@ public class Scremer : MonoBehaviour
     public GameObject point;
     public SUPERCharacterAIO player;
     public bool isActive;
+    public float duration;
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
@@ -52,7 +53,7 @@ public class Scremer : MonoBehaviour
         monster.GetComponent<Animator>().enabled = true;
         monster.transform.LookAt(playerT);
         audioSource.PlayOneShot(clip);
-        yield return new WaitForSeconds(1.5f);
+        yield return new WaitForSeconds(duration);
         player.UnpausePlayer();
         Destroy(monster.gameObject);
         isActive = false;

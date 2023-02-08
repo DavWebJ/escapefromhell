@@ -54,7 +54,7 @@ namespace BlackPearl
        [SerializeField] private List<ItemInInventoryHotbar> inventoryHotbar = new List<ItemInInventoryHotbar>();
 
 
-
+        public GameObject helperinput;
 
 
         #endregion
@@ -83,7 +83,7 @@ namespace BlackPearl
             // panel_craft = GetComponentInChildren<PanelCraft>();
             // panel_craft.Init();
             dragImages = transform.Find("DragImage").GetComponent<DragImages>();
-
+            helperinput.SetActive(false);
             //GameBegin();
         }
 
@@ -140,7 +140,11 @@ namespace BlackPearl
         {
             isInventoryOpen = !isInventoryOpen;
 
-            
+            if (helperinput.activeInHierarchy && helperinput != null)
+            {
+                helperinput.SetActive(false);
+            }
+
             if(AudioM.instance != null)
             {
                 if (panelBackPack.isBackPackEquiped)
