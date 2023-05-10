@@ -9,6 +9,8 @@ public class BulletController : MonoBehaviour
 
     [SerializeField] private AudioSource audios;
 
+
+    public float damage;
     [SerializeField] public AudioClip metal, concrete, wood;
    private Vector3 lastPos = new Vector3();
     void Start()
@@ -55,6 +57,16 @@ public class BulletController : MonoBehaviour
                             break;
                         case "Concrete":
                             audios.PlayOneShot(concrete);
+                            break;
+                        case "Character":
+                            if(hit.collider.tag == "NPC")
+                            {
+                                Quaternion rot = Quaternion.Euler(0, 180, 0);
+                                Instantiate(hit.collider.gameObject.GetComponent<AiHealthManager>().fx, hit.transform.position, rot);
+                                //hit.collider.gameObject.GetComponent<BlazeAI>().Hit();
+
+                                hit.collider.gameObject.GetComponent<AiHealthManager>().TakeDamage(damage);
+                            }
                             break;
                         default:
                             break;

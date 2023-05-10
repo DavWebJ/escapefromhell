@@ -5,7 +5,6 @@ using UnityEngine;
 using BlackPearl;
 using SUPERCharacter;
 using UnityEngine.UI;
-using UnityEngine.Rendering.Universal;
 using System.Linq;
 
 [RequireComponent(typeof(M_Resources))]
@@ -66,7 +65,8 @@ public class GameManager : MonoBehaviour
         player.transform.rotation = Quaternion.identity;
         audioManager = GetComponent<AudioM>();
         resources.InitItems();
-        
+
+
     }
     private void Start() {
 

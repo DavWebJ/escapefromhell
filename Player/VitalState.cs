@@ -51,7 +51,7 @@ public class VitalState : MonoBehaviour {
 
         void Start () {
 
-            health = 100;
+            health = 150;
             mental = mentalMax;
             hunger = hungerMax;
             thirst = thirstMax;
@@ -133,7 +133,12 @@ public class VitalState : MonoBehaviour {
                 health = healthMax;
 
             }
-                HUDVitals.instance.Ui_Health(health, healthMax);
+
+            if (health <= 40)
+            {
+                HUD.instance.HealthIsInDangerousValue();
+            }
+            HUDVitals.instance.Ui_Health(health, healthMax);
         }
 
 
@@ -198,7 +203,13 @@ public class VitalState : MonoBehaviour {
             // modelsAnimator.PlayTargetAnimation("hit",true);
 
                 health -= damage;
-        
+            HUD.instance.ScreenEffect("BloodFallDamage");
+            if(health >= 40)
+            {
+                HUD.instance.showHealth();
+            }
+
+
             HUDVitals.instance.Ui_Health(health, healthMax);
 
             if (health <= 0)
@@ -206,7 +217,10 @@ public class VitalState : MonoBehaviour {
                 health = 0;
         
                 isdead = true;
-                player.enableMovementControl = false;
+                //BlazeAI blaze = FindObjectOfType<BlazeAI>();
+                //blaze.ChangeState("normal");
+                player.gameObject.tag = "Dead";
+                player.SetController(false);
                 InputManager.instance.inventoryInputs.InventoryAction.Disable();
            
 
@@ -216,8 +230,8 @@ public class VitalState : MonoBehaviour {
 
         public void PlayDieSound()
         {
-            AudioM.instance.SetBackGroundAudioType(AudioBackGroundType.GameOver);
-            HUD.instance.ScreenEffect("GameOver");
+            //AudioM.instance.SetBackGroundAudioType(AudioBackGroundType.GameOver);
+            //HUD.instance.ScreenEffect("GameOver");
         }
         public void SetStamina()
         {

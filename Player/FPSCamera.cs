@@ -21,14 +21,16 @@ namespace BlackPearl{
         public bool resetRotation = true;
         public ItemToPickUp currentItem;
         public PickUp pickup;
-
-
+        internal Vector3 cameraStartingPosition;
+        public GameObject armEmpty;
+        public GameObject smoke;
 
         private void Start() {
 
             cam = GetComponent<Camera>();
-            
-            
+
+            cameraStartingPosition = transform.localPosition;
+            smoke.SetActive(false);
         }
 
 
@@ -44,7 +46,7 @@ namespace BlackPearl{
             targetZoom = transform.Find("TargetZoom");
             StartCoroutine(ApplyRotation());
             transform.LookAt(targetLook);
-
+            
 
         }
 
@@ -58,6 +60,12 @@ namespace BlackPearl{
         }
 
 
+        public void CreateEmptyArm()
+        {
+            GameObject go = Instantiate(armEmpty, armsHolder);
+            go.GetComponent<ArmsController>().enabled = true;
+            go.GetComponent<ArmsController>().canHideArm = true;
+        }
         public void updateTargetLook()
         {
             Vector3 origin = cam.transform.position;
@@ -110,10 +118,20 @@ namespace BlackPearl{
                     }
 
                     
+                }else if(hit.transform.TryGetComponent(out OpenDoor door) && dist <= RayLength)
+                {
+                    
+                    InputManager.instance.EnabledInterractpinput(true);
+
+                    DoorUi.instance.ShowUi(door.isClosed);
+                    if (InputManager.instance.inventoryInputs.InventoryAction.Interract.triggered)
+                    {
+                        door.PlayOpenDoor();
+                    }
                 }
                 else
                 {
-                    
+                    DoorUi.instance.HideUi();
                     ClearLastInterract();
                     pickup.DisableInterraction();
                     return;
@@ -163,8 +181,23 @@ namespace BlackPearl{
 
 
             }
+
         }
 
+
+        public IEnumerator CameraShake(float Duration, float Magnitude)
+        {
+            
+            float elapsed = 0;
+            while (elapsed < Duration)
+            {
+                transform.localPosition = Vector3.MoveTowards(transform.localPosition, new Vector3(cameraStartingPosition.x + Random.Range(-1, 1) * Magnitude, cameraStartingPosition.y + Random.Range(-1, 1) * Magnitude, cameraStartingPosition.z), Magnitude * 2);
+                yield return new WaitForSecondsRealtime(0.001f);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            transform.localPosition = cameraStartingPosition;
+        }
         //private void OnDrawGizmos()
         //{
         //    Gizmos.color = Color.red;

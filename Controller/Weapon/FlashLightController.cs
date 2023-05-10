@@ -64,7 +64,7 @@ public class FlashLightController : MonoBehaviour
         player = FindObjectOfType<SUPERCharacterAIO>();
         flashlight.enabled = false;
         flashlight.intensity = DefaultIntensity;
-        maxTimeToDecrease = 3;
+        
         arm = GetComponent<ArmsController>();
         volumetricLight = flashlight.GetComponent<VolumetricLightBeam>();
         volumetricLight.intensityGlobal = 0;
@@ -229,7 +229,7 @@ public class FlashLightController : MonoBehaviour
                 
                 float val = (float)HudFlashLight.instance.currentBatery / (float)HudFlashLight.instance.maxBatery;
                 flashlight.color = lightColor.Evaluate(val);
-                flashlight.intensity = DefaultIntensity;
+                flashlight.intensity = val;
                 flashlight.enabled = true;
                 volumetricLight.intensityGlobal = volumetricLightDefaultIntensity;
             }

@@ -48,8 +48,9 @@ public class ShotGunController : MonoBehaviour
     public bool isFiring = false;
     public Vector3 aimingPos;
 
+    public float damage;
 
-    public float cooldown = 0.7f;
+    public float cooldown = 1f;
 
 
 
@@ -122,7 +123,7 @@ public class ShotGunController : MonoBehaviour
     public void updateGunInputs()
     {
 
-        if (arm.isSprinting)
+        if (arm.isSprinting || isReloading)
         {
             arm.anim.SetBool("isAiming", false);
              return;
@@ -225,7 +226,9 @@ public class ShotGunController : MonoBehaviour
 
                     }
 
-                    Instantiate(prefab_bullet, spawn.position, spawn.rotation);
+                    
+                   GameObject go =  Instantiate(prefab_bullet, spawn.position, spawn.rotation);
+         
                     RecoilWeapon recoilFx = GetComponent<RecoilWeapon>();
                     recoilFx.Recoil();
                     //Destroy(fx);

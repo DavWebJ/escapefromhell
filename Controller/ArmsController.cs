@@ -13,7 +13,7 @@ public enum ArmType
     axe_one_hand,
     axe_two_hand,
     grenade,
-    none
+    empty
 
 }
 
@@ -36,9 +36,19 @@ public class ArmsController : MonoBehaviour
     public bool canChangeIdle = false;
     public float timer = 0;
     public bool isInAction = false;
+    public bool canHideArm = false;
+    public bool armIsHiden = false;
     private void Awake()
     {
-        armName = armItem.ArmPrefab.name;
+        if(armItem.ArmPrefab != null)
+        {
+            armName = armItem.ArmPrefab.name;
+        }
+        else
+        {
+            armName = "";
+        }
+        
         SetArmtype();
     }
     void Start()
@@ -71,10 +81,30 @@ public class ArmsController : MonoBehaviour
                 anim.SetBool(walkAnim, false);
                 break;
             case PlayerStat.walk:
+                //if (armtype == ArmType.empty)
+                //{
+                //    if (armIsHiden)
+                //    {
+                //        PlayInitAnimation();
+                //        armIsHiden = false;
+                //        canHideArm = true;
+                //    }
+
+                //}
                 anim.SetBool(sprintAnim, false);
                 anim.SetBool(walkAnim, true);
                 break;
             case PlayerStat.sprint:
+                if(armtype == ArmType.empty)
+                {
+                    if (armIsHiden)
+                    {
+                        PlayInitAnimation();
+                        armIsHiden = false;
+                        canHideArm = true;
+                    }
+
+                }
                 anim.SetBool(sprintAnim, true);
                 anim.SetBool(walkAnim, false);
                 break;
@@ -116,7 +146,7 @@ public class ArmsController : MonoBehaviour
             case ArmType.grenade:
            
                 break;
-            case ArmType.none:
+            case ArmType.empty:
                 InputManager.instance.DisableAllActions();
                 break;
             default:
@@ -151,7 +181,7 @@ public class ArmsController : MonoBehaviour
                 break;
             case ArmType.grenade:
                 break;
-            case ArmType.none:
+            case ArmType.empty:
                 break;
             default:
                 break;
@@ -192,6 +222,29 @@ public class ArmsController : MonoBehaviour
             }
             
         }
+
+        if (canHideArm && !armIsHiden)
+        {
+            
+            if(isIdle)
+            {
+                timer += Time.deltaTime;
+                if (timer >= 5)
+                {
+                    anim.SetTrigger("Hide");
+                    canHideArm = false;
+                    armIsHiden = true;
+                    timer = 0;
+                }
+
+            }
+            else
+            {
+                timer = 0;
+            }
+
+        }
+
 
         if (startTimer)
         {

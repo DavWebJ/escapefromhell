@@ -11,20 +11,23 @@ public class Scremer : MonoBehaviour
     public AudioClip[] screamerClip;
     public GameObject monster;
     public Animator anim;
-    public Transform playerT;
-    public GameObject point;
+    public Camera cam;
     public SUPERCharacterAIO player;
     public bool isActive;
     public float duration;
+    
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
         anim = monster.GetComponent<Animator>();
         audioSource.playOnAwake = false;
-        monster.SetActive(false);
+
+        anim.enabled = true;
+        cam = GetComponentInChildren<Camera>();
+        //point.SetActive(false);
+        cam.enabled = false;
         isActive = true;
-        point.SetActive(false);
-    
+        monster.SetActive(false);
     }
 
 
@@ -35,8 +38,10 @@ public class Scremer : MonoBehaviour
         {
             if (!isActive) { return; }
             player = other.GetComponent<SUPERCharacterAIO>();
+            
             player.PausePlayer(PauseModes.FreezeInPlace);
-            playerT = other.transform;
+            
+          
             StartCoroutine(PlayScreamer());
             
 
@@ -49,17 +54,20 @@ public class Scremer : MonoBehaviour
         AudioClip clip = screamerClip[Random.Range(0, screamerClip.Length)];
 
         monster.SetActive(true);
-        point.SetActive(true);
-        monster.GetComponent<Animator>().enabled = true;
-        monster.transform.LookAt(playerT);
+        cam.enabled = true;
+        ThunderManager.instance.PlayThunder();
+        anim.enabled = true;
         audioSource.PlayOneShot(clip);
+       
         yield return new WaitForSeconds(duration);
-        player.UnpausePlayer();
+
+        AudioM.instance.PlayOneShotClip(AudioM.instance.FxAudioSource, AudioM.instance.afraid);
         Destroy(monster.gameObject);
+        cam.enabled = false;
+        player.UnpausePlayer();
         isActive = false;
         yield return new WaitForSeconds(clip.length);
-        
-        
+
         Destroy(gameObject);
     }
 

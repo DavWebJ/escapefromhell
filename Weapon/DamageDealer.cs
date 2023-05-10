@@ -122,7 +122,7 @@ public class DamageDealer : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.green;
+        Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, transform.position - transform.forward * weaponLength);
     }
 }

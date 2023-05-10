@@ -6,50 +6,51 @@ using UnityEngine;
 public class AIDamageDealer : MonoBehaviour
 {
     public bool canDamage;
-    public bool hasDealDamage;
-    public LayerMask mask;
-    public AIManager aIManager;
+    public List<GameObject> hasDealDamage;
+    public float _damage;
 
-    [SerializeField] public float weaponLength;
+    public AudioSource audios;
+    [SerializeField] public AudioClip flesh;
+
+    //[SerializeField] public GameObject Fx;
+
     void Start()
     {
         canDamage = false;
-        hasDealDamage = false;
+        audios = GetComponent<AudioSource>();
+        hasDealDamage = new List<GameObject>();
     }
 
-    void Update()
+
+    private void OnCollisionEnter(Collision collision)
     {
-
-        
-        if (canDamage && !hasDealDamage)
+        if (collision != null && canDamage)
         {
-            RaycastHit hit;
-            if (Physics.Raycast(transform.position, -transform.up, out hit, weaponLength, mask))
+            if (collision.collider.tag == "Player")
             {
-
-                if (!hit.transform.gameObject.GetComponent<VitalState>().isdead)
+                audios.PlayOneShot(flesh);
+                if(collision.gameObject.GetComponent<VitalState>() != null)
                 {
-                    VitalState vital = hit.transform.gameObject.GetComponent<VitalState>();
-                    hasDealDamage = true;
-                    Vector3 spawn = transform.position - transform.up * weaponLength;
-                    GameObject go = Instantiate(vital.hitprefab, spawn, Quaternion.identity);
-
-                    hit.transform.gameObject.GetComponent<VitalState>().TakeDamage(aIManager.enemy.damage);
-                    
+                    VitalState playerVital = collision.gameObject.GetComponent<VitalState>();
+                    playerVital.TakeDamage(_damage);
                 }
+                //GameObject go = GameManager.instance.resources.getSurface(other.sharedMaterial.name);
+               
+                //if (go != null)
+                //{
+                //    Vector3 hit = other.gameObject.GetComponent<Collider>().ClosestPointOnBounds(transform.position);
+                //    GameObject impact = Instantiate(go, hit, Quaternion.LookRotation(hit));
 
-
-                   
-
+                //}
             }
+
         }
-        
     }
 
     public void StartDealDamage()
     {
         canDamage = true;
-        hasDealDamage = false;
+        hasDealDamage.Clear();
     }
     public void EndDealDamage()
     {
@@ -57,9 +58,5 @@ public class AIDamageDealer : MonoBehaviour
 
     }
 
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(transform.position, transform.position - transform.up * weaponLength);
-    }
+
 }

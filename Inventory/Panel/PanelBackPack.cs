@@ -46,9 +46,10 @@ namespace BlackPearl
 
         public void Init()
         {
-
-
             isBackPackEquiped = false;
+            InitBackPack(10);
+
+            
 
             
         }

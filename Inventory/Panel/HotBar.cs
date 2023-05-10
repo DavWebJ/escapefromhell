@@ -214,10 +214,12 @@ namespace BlackPearl
                     SelectButton(slot.GetComponent<Button>());
                 }
 
+
             }
             else
             {
-               
+
+                
                 return;
             }
         }

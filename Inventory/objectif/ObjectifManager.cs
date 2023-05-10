@@ -46,6 +46,7 @@ public class ObjectifManager : MonoBehaviour
     public void SetObjectif(ObjectifItem obj)
     {
         ObjectifInDatabase newobjectif = GetObjectifById(obj);
+
         if(newobjectif != null)
         {
            
@@ -76,7 +77,7 @@ public class ObjectifManager : MonoBehaviour
             }
         }
         ScreenEventsManager.instance.SetVisualMessage("Vous avez rempli un objectif !", ScreenEventsManager.instance.prf_objectif_message, ScreenEventsManager.instance.gridObjectifMessage);
-        objectifItems.Remove(obj);
+        //objectifItems.Remove(obj);
         UpdateObjectifPanel();
         yield break;
 

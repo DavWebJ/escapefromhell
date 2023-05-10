@@ -16,6 +16,9 @@ namespace BlackPearl
         [SerializeField] private GameObject health = null;
         [SerializeField] private Image health_fill = null;
 
+        [Header("Health hidden")]
+        [SerializeField] private Image health_fill_hidden = null;
+
         [Header("Hunger")]
         [SerializeField] private GameObject hunger = null;
         [SerializeField] private Image hunger_fill = null;
@@ -57,11 +60,12 @@ namespace BlackPearl
             
             float percent = Inventory.instance.GetPercentage(value,max);
             float currVal = health_fill.fillAmount;
+            float health_hidden_currval = health_fill_hidden.fillAmount;
 
             health_fill.fillAmount = Mathf.Lerp(currVal, percent, Time.deltaTime * 10f);
-            
-           
-            
+            health_fill_hidden.fillAmount = Mathf.Lerp(health_hidden_currval, percent, Time.deltaTime * 10f);
+
+
         }
 
         public void Ui_Mental(float value, float max)

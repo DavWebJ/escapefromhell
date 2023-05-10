@@ -1,25 +1,31 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using SUPERCharacter;
 namespace BlackPearl
 {
 
-    public class AnimatorHandler : AnimationManager
+    public class AnimatorHandler : MonoBehaviour
     {
         public Animator animator;
         //PlayerLocomotion playerLocomotion;
         //InputHandler inputHandler;
-        //PlayerManager playerManager;
+        public SUPERCharacterAIO player;
         int vertical;
         int horizontal;
         public bool canRotate;
 
+
+        private void Start()
+        {
+            Init();
+        }
         public void Init()
         {
             //inputHandler = GetComponentInParent<InputHandler>();
-            //playerManager = GetComponentInParent<PlayerManager>();
-            animator = GetComponent<Animator>();
-            vertical = Animator.StringToHash("Vertical");
+            player = GetComponentInParent<SUPERCharacterAIO>();
+            animator = GetComponentInChildren<Animator>();
+            vertical = Animator.StringToHash("Speed");
             horizontal = Animator.StringToHash("Horizontal");
             //playerLocomotion = GetComponentInParent<PlayerLocomotion>();
         }
@@ -93,22 +99,6 @@ namespace BlackPearl
             animator.SetFloat(horizontal, h, 0.1f, Time.deltaTime);
         }
 
-        public void CanRotate()
-        {
-            canRotate = true;
-        }
-
-        public void StopRotation()
-        {
-            canRotate = false;
-        }
-
-        public void PlayTargetAnimation(string targetAnimation,bool isInterracting)
-        {
-            animator.applyRootMotion = isInterracting;
-            animator.SetBool("isInterracting", isInterracting);
-            animator.CrossFade(targetAnimation, 0.2f);
-        }
 
 
         void Update()
