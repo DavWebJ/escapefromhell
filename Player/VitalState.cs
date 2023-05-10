@@ -45,7 +45,7 @@ public class VitalState : MonoBehaviour {
         public bool isTired = false;
 
 
-        public GameObject seringueArm;
+        public GameObject syringeArm;
         
 
 
@@ -156,15 +156,15 @@ public class VitalState : MonoBehaviour {
         {
             if (healthFull)
             {
-                ScreenEventsManager.instance.SetVisualMessage("Votre vie est au maximum", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+                ScreenEventsManager.instance.SetVisualMessage("Life is already max", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
             }
             else if (hungerFull)
             {
-                ScreenEventsManager.instance.SetVisualMessage("Votre faim est au maximum", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+                ScreenEventsManager.instance.SetVisualMessage("Hunger is already maw", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
             }
             else if(thirstyFull)
             {
-                ScreenEventsManager.instance.SetVisualMessage("Votre soif est au maximum", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
+                ScreenEventsManager.instance.SetVisualMessage("Thirsty is already max", ScreenEventsManager.instance.prf_inventory_message, ScreenEventsManager.instance.gridInventoryMessage);
             }
             return;
         }

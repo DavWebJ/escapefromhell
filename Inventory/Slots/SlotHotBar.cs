@@ -14,7 +14,7 @@ public class SlotHotBar : MonoBehaviour,ISelectHandler,IDeselectHandler
     public Image itemIcon = null;
 
  
-    public SpellActionType actionType;
+
     public Transform grid;
 
 
@@ -75,7 +75,7 @@ public class SlotHotBar : MonoBehaviour,ISelectHandler,IDeselectHandler
     public void OnDeselect(BaseEventData eventData)
     {
         //HotBar.instance.currentItem = null;
-        //HotBar.instance.currentSpellitem = currentSpellItem;
+   
     }
 
     private void Update()

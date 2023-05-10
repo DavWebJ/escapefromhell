@@ -12,7 +12,7 @@ namespace BlackPearl
         [TextArea(10,15)]
         public string ItemDescription = "";
         public Sprite ItemIcon = null;
-        public CategoryObjectType categoryObjectType = CategoryObjectType.Interractable;
+        public CategoryObjectType categoryObjectType;
         public Category itemCategory = Category.None;
         public ItemType itemType = ItemType.None;
         public float damage = 0;

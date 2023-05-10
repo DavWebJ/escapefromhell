@@ -25,13 +25,12 @@ namespace BlackPearl
 
         public Sprite emptySlot;
         
-        public PanelStorage panel_storage = null;
 
         public bool canSelect = false;
         private float timer = 0;
- 
-        //public HUDObjectif panel_objectif = null;
 
+        //public HUDObjectif panel_objectif = null;
+        public CategoryObjectType categoryObjectType;
         [SerializeField] public GameObject slotPref;
 
 
@@ -78,10 +77,6 @@ namespace BlackPearl
             panelBackPack.Init();
             UiNavigationManager.instance.Init();
            
-            // panel_storage = GetComponentInChildren<PanelStorage>();
-            // panel_storage.Init();
-            // panel_craft = GetComponentInChildren<PanelCraft>();
-            // panel_craft.Init();
             dragImages = transform.Find("DragImage").GetComponent<DragImages>();
             helperinput.SetActive(false);
             //GameBegin();

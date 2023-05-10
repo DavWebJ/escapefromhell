@@ -180,7 +180,7 @@ namespace BlackPearl
              
                         player.fpscam.DestroyCurrentArms();
            
-                        GameObject go = Instantiate(player.playerVitals.seringueArm, player.fpscam.armsHolder);
+                        GameObject go = Instantiate(player.playerVitals.syringeArm, player.fpscam.armsHolder);
                         yield return new WaitForSeconds(2.5f);
                         HotBar.instance.RespawnArm(tempslot);
                     }
